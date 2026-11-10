@@ -8,17 +8,18 @@
       content="default-src 'self'; img-src 'self' data:; media-src 'self' file: blob:; connect-src 'self' https://cam-share-app.onrender.com wss://cam-share-app.onrender.com; style-src 'self' 'unsafe-inline'"
     />
     <title>CamShare</title>
+    <link rel="icon" type="image/png" href="assets/icon.png" />
     <style>
       :root {
         color-scheme: light;
-        --paper: #e8edf0;
-        --ink: #162330;
-        --muted: #435663;
-        --line: #c5d0d7;
-        --rec: #d12b24;
-        --rec-dark: #a91f19;
-        --steel: #1f4a5e;
-        --steel-2: #327288;
+        --paper: #eef1f8;
+        --ink: #0f132a;
+        --muted: #525a75;
+        --line: #d3d8e8;
+        --rec: #ef4444;
+        --rec-dark: #dc2626;
+        --steel: #4338ca;
+        --steel-2: #6366f1;
         font-family:
           "Segoe UI Variable Display",
           "Segoe UI",
@@ -41,7 +42,11 @@
         min-height: 100vh;
         display: flex;
         background:
-          radial-gradient(ellipse at 82% 12%, rgba(255, 255, 255, 0.72), transparent 34rem),
+          radial-gradient(
+            ellipse at 82% 12%,
+            rgba(255, 255, 255, 0.8),
+            transparent 34rem
+          ),
           var(--paper);
       }
       aside {
@@ -51,8 +56,8 @@
         gap: 20px;
         width: 320px;
         padding: 24px 22px;
-        border-right: 1px solid rgba(22, 35, 48, 0.1);
-        background: rgba(245, 248, 249, 0.84);
+        border-right: 1px solid rgba(15, 19, 42, 0.08);
+        background: rgba(244, 246, 252, 0.86);
         overflow: auto;
       }
       .brand {
@@ -71,12 +76,12 @@
         height: 32px;
         place-items: center;
         border-radius: 10px;
-        background: linear-gradient(140deg, #2a7a9b, #1b2d40);
-        box-shadow: 0 7px 16px rgba(20, 41, 58, 0.2);
+        box-shadow: 0 7px 18px rgba(30, 27, 75, 0.22);
       }
       .brand-mark svg {
-        width: 21px;
-        height: 21px;
+        display: block;
+        width: 100%;
+        height: 100%;
       }
       .sidebar-intro h1 {
         margin: 0;
@@ -91,10 +96,10 @@
       }
       .setup-section {
         padding: 16px;
-        border: 1px solid rgba(22, 35, 48, 0.08);
+        border: 1px solid rgba(15, 19, 42, 0.08);
         border-radius: 14px;
-        background: rgba(255, 255, 255, 0.72);
-        box-shadow: 0 5px 16px rgba(22, 35, 48, 0.04);
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: 0 5px 16px rgba(15, 19, 42, 0.04);
       }
       .section-title {
         display: flex;
@@ -109,7 +114,7 @@
         height: 27px;
         place-items: center;
         border-radius: 9px;
-        background: #e5eef1;
+        background: #e0e5f5;
         color: var(--steel);
         font-size: 11px;
         font-weight: 800;
@@ -151,9 +156,9 @@
         align-items: center;
         gap: 8px;
         padding: 8px 11px;
-        border: 1px solid rgba(22, 35, 48, 0.09);
+        border: 1px solid rgba(15, 19, 42, 0.09);
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.65);
+        background: rgba(255, 255, 255, 0.7);
         color: var(--muted);
         font-size: 11px;
         font-weight: 700;
@@ -177,9 +182,9 @@
         place-items: center;
         border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 20px;
-        background: linear-gradient(145deg, #1f4a5e, #162330);
+        background: linear-gradient(145deg, #1e1b4b, #0f132a);
         box-shadow:
-          0 24px 60px rgba(22, 35, 48, 0.19),
+          0 24px 60px rgba(15, 19, 42, 0.22),
           inset 0 1px 0 rgba(255, 255, 255, 0.12);
       }
       .preview-frame:has(canvas:not([width]))::after {
@@ -228,9 +233,9 @@
           transform 150ms ease;
       }
       button:not(:disabled):hover {
-        border-color: #9fb3bd;
-        background: #f5f8f9;
-        box-shadow: 0 4px 10px rgba(22, 35, 48, 0.08);
+        border-color: #a5b4fc;
+        background: #f5f6ff;
+        box-shadow: 0 4px 12px rgba(30, 27, 75, 0.08);
         transform: translateY(-1px);
       }
       button.rec {
@@ -248,7 +253,7 @@
         cursor: not-allowed;
       }
       :focus-visible {
-        outline: 3px solid rgba(50, 114, 136, 0.55);
+        outline: 3px solid rgba(99, 102, 241, 0.55);
         outline-offset: 3px;
       }
       label {
@@ -271,11 +276,11 @@
         display: none;
         width: min(100%, 640px);
         padding: 18px;
-        border: 1px solid rgba(22, 35, 48, 0.1);
+        border: 1px solid rgba(15, 19, 42, 0.1);
         border-radius: 16px;
         background: rgba(255, 255, 255, 0.9);
         text-align: center;
-        box-shadow: 0 12px 30px rgba(22, 35, 48, 0.1);
+        box-shadow: 0 12px 30px rgba(15, 19, 42, 0.1);
       }
       #done video {
         width: 100%;
@@ -289,19 +294,20 @@
       #qr {
         display: block;
         width: min(220px, 100%);
-        height: auto;
+        aspect-ratio: 1 / 1;
         margin: 0 auto 12px;
         padding: 8px;
-        border: 1px solid rgba(22, 35, 48, 0.08);
+        border: 1px solid rgba(15, 19, 42, 0.08);
         border-radius: 12px;
         background: #fff;
+        object-fit: contain;
       }
       #cam {
         width: fit-content;
         max-width: 100%;
         padding: 7px 10px;
         border-radius: 999px;
-        background: #e9f1f3;
+        background: #e5e9f8;
         color: var(--steel);
         font-size: 11px;
         font-weight: 700;
@@ -316,10 +322,10 @@
         justify-content: center;
         gap: 8px;
         padding: 10px 14px;
-        border: 1px solid rgba(22, 35, 48, 0.1);
+        border: 1px solid rgba(15, 19, 42, 0.1);
         border-radius: 14px;
         background: rgba(255, 255, 255, 0.76);
-        box-shadow: 0 6px 18px rgba(22, 35, 48, 0.06);
+        box-shadow: 0 6px 18px rgba(15, 19, 42, 0.06);
       }
       #st {
         margin-left: 4px;
@@ -340,7 +346,7 @@
         display: grid;
         place-items: center;
         padding: 20px;
-        background: rgba(14, 27, 38, 0.52);
+        background: rgba(15, 19, 42, 0.55);
         backdrop-filter: blur(7px);
       }
       #screenPicker[hidden] {
@@ -353,8 +359,8 @@
         padding: 22px;
         border: 1px solid rgba(255, 255, 255, 0.55);
         border-radius: 18px;
-        background: #f7fafb;
-        box-shadow: 0 24px 70px rgba(8, 20, 28, 0.3);
+        background: #f6f8fd;
+        box-shadow: 0 24px 70px rgba(15, 19, 42, 0.32);
       }
       .pickerPanel h2 {
         margin-bottom: 16px;
@@ -379,7 +385,7 @@
         aspect-ratio: 16 / 10;
         object-fit: contain;
         border-radius: 5px;
-        background: #162330;
+        background: #0f132a;
       }
       .pip-size {
         display: flex;
@@ -407,7 +413,7 @@
           width: 100%;
           padding: 18px;
           border-right: 0;
-          border-bottom: 1px solid rgba(22, 35, 48, 0.1);
+          border-bottom: 1px solid rgba(15, 19, 42, 0.1);
         }
         main {
           min-height: 620px;
@@ -466,11 +472,45 @@
     <aside>
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <rect x="2.5" y="5" width="13" height="14" rx="3.5" fill="white" fill-opacity=".25" />
-            <circle cx="15.5" cy="12" r="5.5" fill="white" />
-            <circle cx="15.5" cy="12" r="2.6" fill="#2f5d74" />
-            <path d="M16 4h4a1.5 1.5 0 0 1 1.5 1.5V7H16z" fill="#ff5a52" />
+          <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="abg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#6366f1" />
+                <stop offset="1" stop-color="#1e1b4b" />
+              </linearGradient>
+              <radialGradient id="aglow" cx="0.3" cy="0.2" r="0.9">
+                <stop offset="0" stop-color="#fff" stop-opacity=".22" />
+                <stop offset="0.6" stop-color="#fff" stop-opacity="0" />
+              </radialGradient>
+              <linearGradient id="aring" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffffff" />
+                <stop offset="1" stop-color="#e0e7ff" />
+              </linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="116" fill="url(#abg)" />
+            <rect width="512" height="512" rx="116" fill="url(#aglow)" />
+            <!-- viewfinder brackets: the "screen" being captured -->
+            <g
+              fill="none"
+              stroke="#fff"
+              stroke-opacity=".45"
+              stroke-width="22"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M96 168V132a36 36 0 0 1 36-36h36" />
+              <path d="M344 96h36a36 36 0 0 1 36 36v36" />
+              <path d="M416 344v36a36 36 0 0 1-36 36h-36" />
+              <path d="M168 416h-36a36 36 0 0 1-36-36v-36" />
+            </g>
+            <!-- lens: the phone camera -->
+            <circle cx="256" cy="262" r="112" fill="url(#aring)" />
+            <circle cx="256" cy="262" r="74" fill="#4f46e5" />
+            <circle cx="256" cy="262" r="40" fill="#1e1b4b" />
+            <circle cx="238" cy="244" r="13" fill="#fff" fill-opacity=".95" />
+            <!-- REC dot -->
+            <circle cx="364" cy="156" r="40" fill="#1e1b4b" />
+            <circle cx="364" cy="156" r="30" fill="#ef4444" />
           </svg>
         </span>
         <span>CamShare</span>
@@ -500,10 +540,20 @@
           <span class="step-index">03</span>
           <h2 id="mode-title">Recording mode</h2>
         </div>
-        <label><input type="radio" name="mode" value="screen" /> Screen only</label>
-        <label><input type="radio" name="mode" value="cam" checked /> Screen + camera</label>
-        <label><input type="checkbox" id="aud" /> Also record PC microphone</label>
-        <div class="mut">Screen audio is captured on Windows. Screen + Camera mode also records the phone microphone when permitted.</div>
+        <label
+          ><input type="radio" name="mode" value="screen" /> Screen only</label
+        >
+        <label
+          ><input type="radio" name="mode" value="cam" checked /> Screen +
+          camera</label
+        >
+        <label
+          ><input type="checkbox" id="aud" /> Also record PC microphone</label
+        >
+        <div class="mut">
+          Screen audio is captured on Windows. Screen + Camera mode also records
+          the phone microphone when permitted.
+        </div>
       </section>
       <section class="setup-section" aria-labelledby="pip-title">
         <div class="section-title">
@@ -514,7 +564,10 @@
           <input id="size" type="range" min="10" max="50" value="25" />
           <output id="sizeValue">25%</output>
         </div>
-        <div class="mut">Drag the camera to move it. Drag its lower-right handle or use this slider to resize.</div>
+        <div class="mut">
+          Drag the camera to move it. Drag its lower-right handle or use this
+          slider to resize.
+        </div>
       </section>
       <section class="setup-section" aria-labelledby="save-title">
         <div class="section-title">

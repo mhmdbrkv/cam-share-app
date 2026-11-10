@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Record your screen and use your phone as a camera."
+    />
+    <meta name="theme-color" content="#eef1f8" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20512%20512%22%3E%3Cdefs%3E%3ClinearGradient%20id=%22bg%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20offset=%220%22%20stop-color=%22%236366f1%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%231e1b4b%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width=%22512%22%20height=%22512%22%20rx=%22110%22%20fill=%22url%28%23bg%29%22/%3E%3Ccircle%20cx=%22248%22%20cy=%22272%22%20r=%22150%22%20fill=%22%23fff%22/%3E%3Ccircle%20cx=%22248%22%20cy=%22272%22%20r=%2296%22%20fill=%22%234f46e5%22/%3E%3Ccircle%20cx=%22248%22%20cy=%22272%22%20r=%2248%22%20fill=%22%231e1b4b%22/%3E%3Ccircle%20cx=%22372%22%20cy=%22150%22%20r=%2262%22%20fill=%22%231e1b4b%22/%3E%3Ccircle%20cx=%22372%22%20cy=%22150%22%20r=%2246%22%20fill=%22%23ef4444%22/%3E%3C/svg%3E"
+    />
+    <title>CamShare</title>
+    <style>
+      :root {
+        --paper: #eef1f8;
+        --ink: #0f132a;
+        --muted: #525a75;
+        --line: #d3d8e8;
+        --rec: #ef4444;
+        --rec-dark: #dc2626;
+        --steel: #4338ca;
+        --steel-2: #6366f1;
+        font-family:
+          "Segoe UI Variable Display",
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        min-width: 320px;
+        margin: 0;
+        background:
+          radial-gradient(
+            ellipse at 78% 12%,
+            rgba(255, 255, 255, 0.8),
+            transparent 34rem
+          ),
+          var(--paper);
+      }
+      a {
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 3px solid rgba(99, 102, 241, 0.6);
+        outline-offset: 3px;
+      }
+      .wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      header {
+        display: flex;
+        height: 76px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(15, 19, 42, 0.08);
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 19px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        text-decoration: none;
+      }
+      .brand-mark {
+        display: inline-flex;
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        box-shadow: 0 8px 18px rgba(30, 27, 75, 0.22);
+        overflow: hidden;
+      }
+      .brand-mark svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .github {
+        font-size: 15px;
+        font-weight: 600;
+        text-underline-offset: 4px;
+        transition: color 160ms ease;
+      }
+      .github:hover {
+        color: var(--steel-2);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.25fr 1fr;
+        gap: 24px 56px;
+        align-items: end;
+        padding: 58px 0 46px;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        border: 1px solid rgba(15, 19, 42, 0.08);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.65);
+        padding: 7px 12px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .eyebrow::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--rec);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.16);
+      }
+      h1 {
+        margin: 0;
+        max-width: 11ch;
+        font-size: clamp(44px, 7.4vw, 92px);
+        font-weight: 800;
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+      .intro {
+        margin: 0 0 22px;
+        max-width: 34ch;
+        font-size: 19px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 14px 18px;
+      }
+      .download {
+        display: inline-flex;
+        min-height: 54px;
+        align-items: center;
+        padding: 0 26px;
+        border-radius: 999px;
+        background: var(--rec);
+        color: #fff;
+        font-size: 17px;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
+        transition:
+          background 160ms ease,
+          box-shadow 160ms ease,
+          transform 160ms ease;
+      }
+      .download:hover {
+        background: var(--rec-dark);
+        box-shadow: 0 10px 24px rgba(239, 68, 68, 0.32);
+        transform: translateY(-1px);
+      }
+      .download:focus-visible {
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+      }
+      .note {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      /* The page's one memorable thing: a viewfinder with a camera you can move, like the app. */
+      .viewfinder {
+        --m: 2px;
+        --l: 26px;
+        --c: var(--ink);
+        padding: 20px;
+        border-radius: 20px;
+        box-shadow:
+          0 24px 54px rgba(15, 19, 42, 0.12),
+          inset 0 0 0 1px rgba(15, 19, 42, 0.06);
+        background:
+          linear-gradient(var(--c), var(--c)) top left / var(--l) var(--m)
+            no-repeat,
+          linear-gradient(var(--c), var(--c)) top left / var(--m) var(--l)
+            no-repeat,
+          linear-gradient(var(--c), var(--c)) top right / var(--l) var(--m)
+            no-repeat,
+          linear-gradient(var(--c), var(--c)) top right / var(--m) var(--l)
+            no-repeat,
+          linear-gradient(var(--c), var(--c)) bottom left / var(--l) var(--m)
+            no-repeat,
+          linear-gradient(var(--c), var(--c)) bottom left / var(--m) var(--l)
+            no-repeat,
+          linear-gradient(var(--c), var(--c)) bottom right / var(--l) var(--m)
+            no-repeat,
+          linear-gradient(var(--c), var(--c)) bottom right / var(--m) var(--l)
+            no-repeat;
+        background-color: rgba(255, 255, 255, 0.45);
+      }
+      .screen {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #1e1b4b, #312e81);
+        touch-action: none;
+      }
+      .rec-tag {
+        position: absolute;
+        top: 3.2%;
+        left: 2.4%;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px 6px 10px;
+        border-radius: 999px;
+        background: #0f132acc;
+        color: #fff;
+        font-size: clamp(11px, 1.5vw, 15px);
+        font-variant-numeric: tabular-nums;
+      }
+      .rec-tag i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--rec);
+        animation: blink 1.4s steps(2, start) infinite;
+      }
+      @keyframes blink {
+        to {
+          visibility: hidden;
+        }
+      }
+      .win {
+        position: absolute;
+        left: 9%;
+        top: 17%;
+        width: 62%;
+        height: 68%;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #f8fafc;
+        box-shadow: 0 18px 40px rgba(15, 19, 42, 0.25);
+      }
+      .win-bar {
+        display: flex;
+        gap: 6px;
+        padding: 2.2% 3%;
+        background: #e2e8f0;
+      }
+      .win-bar b {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #94a3b8;
+      }
+      .win-body {
+        display: grid;
+        gap: 7%;
+        padding: 5% 6%;
+      }
+      .win-body span {
+        display: block;
+        height: clamp(5px, 1.1vw, 11px);
+        border-radius: 3px;
+        background: #cbd5e1;
+      }
+      .win-body span.h {
+        width: 38%;
+        height: clamp(8px, 1.8vw, 18px);
+        background: var(--ink);
+      }
+      .win-body span.k {
+        width: 54%;
+        background: #a5b4fc;
+      }
+      .bars {
+        display: flex;
+        height: clamp(40px, 9vw, 110px);
+        align-items: flex-end;
+        gap: 4%;
+        margin-top: 2%;
+      }
+      .bars i {
+        flex: 1;
+        border-radius: 3px 3px 0 0;
+        background: #c7d2fe;
+      }
+      .bars i:nth-child(3) {
+        background: var(--steel-2);
+      }
+
+      .pip {
+        position: absolute;
+        overflow: hidden;
+        width: 25%;
+        aspect-ratio: 4 / 3;
+        border: 4px solid #fff;
+        border-radius: 8px;
+        background: linear-gradient(160deg, #818cf8, #4f46e5);
+        cursor: grab;
+        box-shadow: 0 12px 28px rgba(15, 19, 42, 0.35);
+      }
+      .pip.drag {
+        cursor: grabbing;
+      }
+      .pip::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 24%;
+        width: 26%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: #1e1b4b;
+        transform: translateX(-50%);
+      }
+      .pip::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -14%;
+        width: 64%;
+        aspect-ratio: 1.4;
+        border-radius: 50%;
+        background: #1e1b4b;
+        transform: translateX(-50%);
+      }
+      .pip .grip {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        width: 14px;
+        height: 14px;
+        background: #fff;
+      }
+      .pip-hint {
+        position: absolute;
+        left: 50%;
+        top: 8%;
+        z-index: 1;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #fff;
+        color: var(--ink);
+        font-size: clamp(11px, 1.4vw, 14px);
+        font-weight: 700;
+        white-space: nowrap;
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+      .pip.moved .pip-hint {
+        display: none;
+      }
+      .caption {
+        margin: 14px 4px 0;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: 1fr 2.2fr;
+        gap: 24px 56px;
+        padding: 84px 0 88px;
+      }
+      .steps h2 {
+        margin: 0;
+        text-wrap: balance;
+        max-width: 12ch;
+        font-size: clamp(28px, 3.6vw, 40px);
+        line-height: 1.04;
+        letter-spacing: -0.04em;
+      }
+      .steps-heading p {
+        margin: 12px 0 0;
+        color: var(--muted);
+      }
+      ol {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: s;
+      }
+      li {
+        position: relative;
+        padding: 58px 18px 18px 0;
+        font-size: 16px;
+        line-height: 1.5;
+        color: var(--muted);
+        counter-increment: s;
+      }
+      li::before {
+        content: counter(s);
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: grid;
+        width: 40px;
+        height: 40px;
+        place-items: center;
+        border: 1px solid rgba(15, 19, 42, 0.1);
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 5px 14px rgba(15, 19, 42, 0.08);
+        color: var(--steel);
+        font-weight: 700;
+      }
+      li:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 19px;
+        left: 52px;
+        right: 4px;
+        height: 1px;
+        background: var(--line);
+      }
+      li strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 18px;
+        color: var(--ink);
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 24px 0 36px;
+        border-top: 1px solid var(--line);
+        font-size: 14px;
+        color: var(--muted);
+      }
+      footer a {
+        text-underline-offset: 4px;
+      }
+      footer a:hover {
+        color: var(--steel-2);
+      }
+
+      @media (max-width: 820px) {
+        .hero,
+        .steps {
+          grid-template-columns: 1fr;
+        }
+        ol {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+        li {
+          padding: 4px 0 24px 58px;
+        }
+        li:not(:last-child)::after {
+          top: 48px;
+          bottom: 0;
+          left: 19px;
+          right: auto;
+          width: 1px;
+          height: auto;
+        }
+        .viewfinder {
+          padding: 14px;
+        }
+        .pip {
+          width: 32%;
+        }
+      }
+      @media (max-width: 600px) {
+        .hero {
+          gap: 20px;
+          padding: 38px 0 32px;
+        }
+        h1 {
+          font-size: clamp(42px, 13vw, 64px);
+        }
+        .intro {
+          font-size: 17px;
+        }
+        .steps {
+          gap: 28px;
+          padding: 58px 0 62px;
+        }
+        footer {
+          padding-bottom: 26px;
+        }
+        .pip-hint {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .rec-tag i {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <a class="brand" href="/" aria-label="CamShare home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="lbg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#6366f1"/>
+                <stop offset="1" stop-color="#1e1b4b"/>
+              </linearGradient>
+              <radialGradient id="lglow" cx="0.3" cy="0.2" r="0.9">
+                <stop offset="0" stop-color="#fff" stop-opacity=".22"/>
+                <stop offset="0.6" stop-color="#fff" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="lring" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffffff"/>
+                <stop offset="1" stop-color="#e0e7ff"/>
+              </linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="116" fill="url(#lbg)"/>
+            <rect width="512" height="512" rx="116" fill="url(#lglow)"/>
+            <!-- viewfinder brackets: the "screen" being captured -->
+            <g fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M96 168V132a36 36 0 0 1 36-36h36"/>
+              <path d="M344 96h36a36 36 0 0 1 36 36v36"/>
+              <path d="M416 344v36a36 36 0 0 1-36 36h-36"/>
+              <path d="M168 416h-36a36 36 0 0 1-36-36v-36"/>
+            </g>
+            <!-- lens: the phone camera -->
+            <circle cx="256" cy="262" r="112" fill="url(#lring)"/>
+            <circle cx="256" cy="262" r="74" fill="#4f46e5"/>
+            <circle cx="256" cy="262" r="40" fill="#1e1b4b"/>
+            <circle cx="238" cy="244" r="13" fill="#fff" fill-opacity=".95"/>
+            <!-- REC dot -->
+            <circle cx="364" cy="156" r="40" fill="#1e1b4b"/>
+            <circle cx="364" cy="156" r="30" fill="#ef4444"/>
+          </svg>
+        </span>
+        <span>CamShare</span>
+      </a>
+      <a class="github" href="https://github.com/mhmdbrkv/cam-share-app"
+        >GitHub</a
+      >
+    </header>
+    <main class="wrap">
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <div class="eyebrow">Capture better</div>
+          <h1 id="hero-title">Your phone camera, right in the recording.</h1>
+        </div>
+        <div>
+          <p class="intro">
+            CamShare puts your phone camera over a screen recording. Scan a QR
+            code to connect, then save the video on your PC.
+          </p>
+          <div class="actions">
+            <a
+              class="download"
+              href="https://github.com/mhmdbrkv/cam-share-app/releases/latest/download/CamShare-Setup.exe"
+              >Download for Windows</a
+            >
+            <span class="note">Windows installer</span>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Preview of a CamShare recording">
+        <div class="viewfinder">
+          <div class="screen" id="screen">
+            <span class="rec-tag" aria-hidden="true"
+              ><i></i>Recording <span id="clock">00:12</span></span
+            >
+            <div class="win" aria-hidden="true">
+              <div class="win-bar"><b></b><b></b><b></b></div>
+              <div class="win-body">
+                <span class="h"></span><span></span><span class="k"></span
+                ><span></span><span class="k"></span>
+              </div>
+              <div class="bars" style="padding: 0 6%">
+                <i style="height: 38%"></i><i style="height: 55%"></i
+                ><i style="height: 92%"></i><i style="height: 64%"></i
+                ><i style="height: 46%"></i><i style="height: 78%"></i>
+              </div>
+            </div>
+            <div
+              class="pip"
+              id="pip"
+              role="img"
+              tabindex="0"
+              aria-label="Phone camera preview. Drag it, or use the arrow keys, to move it around the screen."
+            >
+              <span class="grip" aria-hidden="true"></span>
+              <span class="pip-hint" aria-hidden="true">Drag me</span>
+            </div>
+          </div>
+        </div>
+        <p class="caption">
+          Place the camera anywhere on screen. The video is saved just as you
+          see it.
+        </p>
+      </section>
+
+      <section class="steps" aria-labelledby="steps-title">
+        <div class="steps-heading">
+          <h2 id="steps-title">Up and running in a minute</h2>
+          <p>No account needed</p>
+        </div>
+        <ol>
+          <li>
+            <strong>Open CamShare</strong>Choose the screen you want to record.
+          </li>
+          <li>
+            <strong>Scan the QR code</strong>On your phone, tap Connect Camera.
+          </li>
+          <li>
+            <strong>Start recording</strong>Your video is saved on your PC.
+          </li>
+        </ol>
+      </section>
+    </main>
+    <footer class="wrap">
+      <span>CamShare</span>
+      <a href="https://github.com/mhmdbrkv/cam-share-app">View the source</a>
+    </footer>
+    <script>
+      (function () {
+        var screen = document.getElementById("screen"),
+          pip = document.getElementById("pip");
+        var left = 68,
+          top = 52,
+          drag = null;
+        function clamp(v, lo, hi) {
+          return Math.min(Math.max(v, lo), hi);
+        }
+        function place() {
+          var wp = (pip.offsetWidth / screen.offsetWidth) * 100,
+            hp = (pip.offsetHeight / screen.offsetHeight) * 100;
+          left = clamp(left, 2, 98 - wp);
+          top = clamp(top, 2, 98 - hp);
+          pip.style.left = left + "%";
+          pip.style.top = top + "%";
+        }
+        function moved() {
+          pip.classList.add("moved");
+        }
+        pip.addEventListener("pointerdown", function (e) {
+          var r = pip.getBoundingClientRect();
+          drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+          pip.setPointerCapture(e.pointerId);
+          pip.classList.add("drag");
+          moved();
+        });
+        pip.addEventListener("pointermove", function (e) {
+          if (!drag) return;
+          var s = screen.getBoundingClientRect();
+          left = ((e.clientX - drag.dx - s.left) / s.width) * 100;
+          top = ((e.clientY - drag.dy - s.top) / s.height) * 100;
+          place();
+        });
+        function end() {
+          drag = null;
+          pip.classList.remove("drag");
+        }
+        pip.addEventListener("pointerup", end);
+        pip.addEventListener("pointercancel", end);
+        pip.addEventListener("keydown", function (e) {
+          var d = {
+            ArrowLeft: [-3, 0],
+            ArrowRight: [3, 0],
+            ArrowUp: [0, -3],
+            ArrowDown: [0, 3],
+          }[e.key];
+          if (!d) return;
+          e.preventDefault();
+          left += d[0];
+          top += d[1];
+          moved();
+          place();
+        });
+        window.addEventListener("resize", place);
+        place();
+        var t = 12,
+          clock = document.getElementById("clock");
+        setInterval(function () {
+          t++;
+          clock.textContent =
+            String(Math.floor(t / 60) % 60).padStart(2, "0") +
+            ":" +
+            String(t % 60).padStart(2, "0");
+        }, 1000);
+      })();
+    </script>
+  </body>
+</html>

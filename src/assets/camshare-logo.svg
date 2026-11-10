@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CamShare logo">
+  <defs>
+    <linearGradient id="brandBg" x1="8" x2="56" y1="8" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="0.5" stop-color="#164e63"/>
+      <stop offset="1" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <linearGradient id="brandLens" x1="24" x2="44" y1="16" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#d7f3ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#brandBg)"/>
+  <rect x="10" y="15" width="28" height="22" rx="6" fill="#ffffff" fill-opacity="0.10"/>
+  <circle cx="38" cy="31" r="12" fill="url(#brandLens)"/>
+  <circle cx="38" cy="31" r="6.5" fill="#0f4a62"/>
+  <path d="M19 43.5c4.8-5.6 9.3-8.3 17.5-8.3 6.5 0 11.9 2.4 16.5 7.1V49H19z" fill="#ffffff" fill-opacity="0.14"/>
+  <circle cx="49" cy="18" r="5" fill="#ff5a52"/>
+  <path d="M49 13.4v9.2M44.4 18h9.2" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity="0.9"/>
+  <path d="M13 17.3l7.4 6.8-7.4 6.5z" fill="#7dd3fc" opacity="0.9"/>
+</svg>

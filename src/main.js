@@ -222,6 +222,7 @@ if (!hasInstanceLock) {
       width: 1200,
       height: 820,
       title: "CamShare",
+      icon: path.join(__dirname, "assets", "icon.png"),
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         contextIsolation: true,
@@ -257,7 +258,10 @@ if (!hasInstanceLock) {
 }
 app.on("window-all-closed", () => app.quit());
 
-ipcMain.handle("cfg:get", () => ({ dir: saveDir }));
+ipcMain.handle("cfg:get", () => ({
+  dir: saveDir,
+  serverUrl: process.env.SERVER_URL || "https://cam-share-app.onrender.com",
+}));
 ipcMain.handle("screen:select", (_, id) => {
   const source = captureSources.get(id);
   if (!pendingCapture || !source)

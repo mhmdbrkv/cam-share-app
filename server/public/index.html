@@ -7,23 +7,23 @@
       name="description"
       content="Record your screen and use your phone as a camera."
     />
-    <meta name="theme-color" content="#e8edf0" />
+    <meta name="theme-color" content="#eef1f8" />
     <link
       rel="icon"
       type="image/svg+xml"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%2328789b'/%3E%3Cstop offset='1' stop-color='%231b2d40'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Crect x='11' y='18' width='26' height='24' rx='7' fill='rgba(255,255,255,0.18)'/%3E%3Ccircle cx='38' cy='30' r='10' fill='%23ffffff'/%3E%3Ccircle cx='38' cy='30' r='5' fill='%232f5d74'/%3E%3Crect x='38' y='15' width='13' height='8' rx='3' fill='%23d12b24'/%3E%3Ccircle cx='49' cy='17' r='4' fill='%23ff5a52'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20512%20512%22%3E%3Cdefs%3E%3ClinearGradient%20id=%22bg%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20offset=%220%22%20stop-color=%22%236366f1%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%231e1b4b%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width=%22512%22%20height=%22512%22%20rx=%22110%22%20fill=%22url%28%23bg%29%22/%3E%3Ccircle%20cx=%22248%22%20cy=%22272%22%20r=%22150%22%20fill=%22%23fff%22/%3E%3Ccircle%20cx=%22248%22%20cy=%22272%22%20r=%2296%22%20fill=%22%234f46e5%22/%3E%3Ccircle%20cx=%22248%22%20cy=%22272%22%20r=%2248%22%20fill=%22%231e1b4b%22/%3E%3Ccircle%20cx=%22372%22%20cy=%22150%22%20r=%2262%22%20fill=%22%231e1b4b%22/%3E%3Ccircle%20cx=%22372%22%20cy=%22150%22%20r=%2246%22%20fill=%22%23ef4444%22/%3E%3C/svg%3E"
     />
     <title>CamShare</title>
     <style>
       :root {
-        --paper: #e8edf0;
-        --ink: #162330;
-        --muted: #435663;
-        --line: #c5d0d7;
-        --rec: #d12b24;
-        --rec-dark: #a91f19;
-        --steel: #1f4a5e;
-        --steel-2: #327288;
+        --paper: #eef1f8;
+        --ink: #0f132a;
+        --muted: #525a75;
+        --line: #d3d8e8;
+        --rec: #ef4444;
+        --rec-dark: #dc2626;
+        --steel: #4338ca;
+        --steel-2: #6366f1;
         font-family:
           "Segoe UI Variable Display",
           "Segoe UI",
@@ -46,7 +46,7 @@
         background:
           radial-gradient(
             ellipse at 78% 12%,
-            rgba(255, 255, 255, 0.7),
+            rgba(255, 255, 255, 0.8),
             transparent 34rem
           ),
           var(--paper);
@@ -55,7 +55,7 @@
         color: inherit;
       }
       :focus-visible {
-        outline: 3px solid var(--ink);
+        outline: 3px solid rgba(99, 102, 241, 0.6);
         outline-offset: 3px;
       }
       .wrap {
@@ -68,7 +68,7 @@
         height: 76px;
         align-items: center;
         justify-content: space-between;
-        border-bottom: 1px solid rgba(22, 35, 48, 0.1);
+        border-bottom: 1px solid rgba(15, 19, 42, 0.08);
       }
       .brand {
         display: inline-flex;
@@ -84,7 +84,7 @@
         width: 30px;
         height: 30px;
         border-radius: 10px;
-        box-shadow: 0 8px 18px rgba(20, 41, 58, 0.2);
+        box-shadow: 0 8px 18px rgba(30, 27, 75, 0.22);
         overflow: hidden;
       }
       .brand-mark svg {
@@ -114,9 +114,9 @@
         align-items: center;
         gap: 8px;
         margin-bottom: 16px;
-        border: 1px solid rgba(22, 35, 48, 0.08);
+        border: 1px solid rgba(15, 19, 42, 0.08);
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.48);
+        background: rgba(255, 255, 255, 0.65);
         padding: 7px 12px;
         color: var(--muted);
         font-size: 12px;
@@ -130,7 +130,7 @@
         height: 8px;
         border-radius: 50%;
         background: var(--rec);
-        box-shadow: 0 0 0 4px rgba(209, 43, 36, 0.15);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.16);
       }
       h1 {
         margin: 0;
@@ -164,7 +164,7 @@
         font-size: 17px;
         font-weight: 700;
         text-decoration: none;
-        box-shadow: 0 8px 18px rgba(169, 31, 25, 0.18);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
         transition:
           background 160ms ease,
           box-shadow 160ms ease,
@@ -172,11 +172,11 @@
       }
       .download:hover {
         background: var(--rec-dark);
-        box-shadow: 0 10px 22px rgba(169, 31, 25, 0.24);
+        box-shadow: 0 10px 24px rgba(239, 68, 68, 0.32);
         transform: translateY(-1px);
       }
       .download:focus-visible {
-        box-shadow: 0 0 0 3px rgba(22, 35, 48, 0.2);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
       }
       .note {
         font-size: 14px;
@@ -191,8 +191,8 @@
         padding: 20px;
         border-radius: 20px;
         box-shadow:
-          0 24px 54px rgba(22, 35, 48, 0.1),
-          inset 0 0 0 1px rgba(22, 35, 48, 0.05);
+          0 24px 54px rgba(15, 19, 42, 0.12),
+          inset 0 0 0 1px rgba(15, 19, 42, 0.06);
         background:
           linear-gradient(var(--c), var(--c)) top left / var(--l) var(--m)
             no-repeat,
@@ -210,14 +210,14 @@
             no-repeat,
           linear-gradient(var(--c), var(--c)) bottom right / var(--m) var(--l)
             no-repeat;
-        background-color: rgba(255, 255, 255, 0.36);
+        background-color: rgba(255, 255, 255, 0.45);
       }
       .screen {
         position: relative;
         aspect-ratio: 16 / 9;
         overflow: hidden;
         border-radius: 10px;
-        background: linear-gradient(135deg, var(--steel), var(--steel-2));
+        background: linear-gradient(135deg, #1e1b4b, #312e81);
         touch-action: none;
       }
       .rec-tag {
@@ -229,7 +229,7 @@
         gap: 8px;
         padding: 6px 12px 6px 10px;
         border-radius: 999px;
-        background: #162330cc;
+        background: #0f132acc;
         color: #fff;
         font-size: clamp(11px, 1.5vw, 15px);
         font-variant-numeric: tabular-nums;
@@ -238,7 +238,7 @@
         width: 9px;
         height: 9px;
         border-radius: 50%;
-        background: #ff5a52;
+        background: var(--rec);
         animation: blink 1.4s steps(2, start) infinite;
       }
       @keyframes blink {
@@ -254,20 +254,20 @@
         height: 68%;
         overflow: hidden;
         border-radius: 8px;
-        background: #f7fafb;
-        box-shadow: 0 18px 40px #0a1a2440;
+        background: #f8fafc;
+        box-shadow: 0 18px 40px rgba(15, 19, 42, 0.25);
       }
       .win-bar {
         display: flex;
         gap: 6px;
         padding: 2.2% 3%;
-        background: #dde6ea;
+        background: #e2e8f0;
       }
       .win-bar b {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: #9fb0ba;
+        background: #94a3b8;
       }
       .win-body {
         display: grid;
@@ -278,7 +278,7 @@
         display: block;
         height: clamp(5px, 1.1vw, 11px);
         border-radius: 3px;
-        background: #c9d6dc;
+        background: #cbd5e1;
       }
       .win-body span.h {
         width: 38%;
@@ -287,7 +287,7 @@
       }
       .win-body span.k {
         width: 54%;
-        background: #9cc3cf;
+        background: #a5b4fc;
       }
       .bars {
         display: flex;
@@ -299,7 +299,7 @@
       .bars i {
         flex: 1;
         border-radius: 3px 3px 0 0;
-        background: #9cc3cf;
+        background: #c7d2fe;
       }
       .bars i:nth-child(3) {
         background: var(--steel-2);
@@ -312,9 +312,9 @@
         aspect-ratio: 4 / 3;
         border: 4px solid #fff;
         border-radius: 8px;
-        background: linear-gradient(160deg, #9ed0da, #5fa6b8);
+        background: linear-gradient(160deg, #818cf8, #4f46e5);
         cursor: grab;
-        box-shadow: 0 12px 28px #0a1a2466;
+        box-shadow: 0 12px 28px rgba(15, 19, 42, 0.35);
       }
       .pip.drag {
         cursor: grabbing;
@@ -327,7 +327,7 @@
         width: 26%;
         aspect-ratio: 1;
         border-radius: 50%;
-        background: #25384a;
+        background: #1e1b4b;
         transform: translateX(-50%);
       }
       .pip::after {
@@ -338,7 +338,7 @@
         width: 64%;
         aspect-ratio: 1.4;
         border-radius: 50%;
-        background: #25384a;
+        background: #1e1b4b;
         transform: translateX(-50%);
       }
       .pip .grip {
@@ -418,11 +418,10 @@
         width: 40px;
         height: 40px;
         place-items: center;
-        border: 1px solid rgba(22, 35, 48, 0.1);
+        border: 1px solid rgba(15, 19, 42, 0.1);
         border-radius: 14px;
         background: #fff;
-        box-shadow: 0 5px 14px rgba(22, 35, 48, 0.08);
-        color: #fff;
+        box-shadow: 0 5px 14px rgba(15, 19, 42, 0.08);
         color: var(--steel);
         font-weight: 700;
       }
@@ -518,26 +517,38 @@
     <header class="wrap">
       <a class="brand" href="/" aria-label="CamShare home">
         <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="brandGradient" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0" stop-color="#2a7a9b" />
-                <stop offset="1" stop-color="#1b2d40" />
+              <linearGradient id="lbg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#6366f1"/>
+                <stop offset="1" stop-color="#1e1b4b"/>
+              </linearGradient>
+              <radialGradient id="lglow" cx="0.3" cy="0.2" r="0.9">
+                <stop offset="0" stop-color="#fff" stop-opacity=".22"/>
+                <stop offset="0.6" stop-color="#fff" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="lring" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffffff"/>
+                <stop offset="1" stop-color="#e0e7ff"/>
               </linearGradient>
             </defs>
-            <rect width="64" height="64" rx="18" fill="url(#brandGradient)" />
-            <rect
-              x="10"
-              y="19"
-              width="27"
-              height="24"
-              rx="7"
-              fill="rgba(255,255,255,0.18)"
-            />
-            <circle cx="38" cy="31" r="10" fill="#fff" />
-            <circle cx="38" cy="31" r="5" fill="#2f5d74" />
-            <rect x="38" y="16" width="13" height="8" rx="3" fill="#d12b24" />
-            <circle cx="49" cy="18" r="4" fill="#ff5a52" />
+            <rect width="512" height="512" rx="116" fill="url(#lbg)"/>
+            <rect width="512" height="512" rx="116" fill="url(#lglow)"/>
+            <!-- viewfinder brackets: the "screen" being captured -->
+            <g fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M96 168V132a36 36 0 0 1 36-36h36"/>
+              <path d="M344 96h36a36 36 0 0 1 36 36v36"/>
+              <path d="M416 344v36a36 36 0 0 1-36 36h-36"/>
+              <path d="M168 416h-36a36 36 0 0 1-36-36v-36"/>
+            </g>
+            <!-- lens: the phone camera -->
+            <circle cx="256" cy="262" r="112" fill="url(#lring)"/>
+            <circle cx="256" cy="262" r="74" fill="#4f46e5"/>
+            <circle cx="256" cy="262" r="40" fill="#1e1b4b"/>
+            <circle cx="238" cy="244" r="13" fill="#fff" fill-opacity=".95"/>
+            <!-- REC dot -->
+            <circle cx="364" cy="156" r="40" fill="#1e1b4b"/>
+            <circle cx="364" cy="156" r="30" fill="#ef4444"/>
           </svg>
         </span>
         <span>CamShare</span>

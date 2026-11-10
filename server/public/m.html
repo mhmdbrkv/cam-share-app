@@ -4,34 +4,87 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>CamShare Camera</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20512%20512%22%3E%3Cdefs%3E%3ClinearGradient%20id=%22bg%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20offset=%220%22%20stop-color=%22%236366f1%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%231e1b4b%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width=%22512%22%20height=%22512%22%20rx=%22110%22%20fill=%22url%28%23bg%29%22/%3E%3Ccircle%20cx=%22248%22%20cy=%22272%22%20r=%22150%22%20fill=%22%23fff%22/%3E%3Ccircle%20cx=%22248%22%20cy=%22272%22%20r=%2296%22%20fill=%22%234f46e5%22/%3E%3Ccircle%20cx=%22248%22%20cy=%22272%22%20r=%2248%22%20fill=%22%231e1b4b%22/%3E%3Ccircle%20cx=%22372%22%20cy=%22150%22%20r=%2262%22%20fill=%22%231e1b4b%22/%3E%3Ccircle%20cx=%22372%22%20cy=%22150%22%20r=%2246%22%20fill=%22%23ef4444%22/%3E%3C/svg%3E"
+    />
+    <meta name="theme-color" content="#0f132a" />
     <style>
       body {
         margin: 0;
-        font-family: system-ui;
-        background: #111;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #0f132a;
         color: #eee;
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .preview-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        position: relative;
       }
       video {
         width: 100%;
-        max-height: 70vh;
-        background: #000;
+        max-height: 75vh;
+        object-fit: contain;
+      }
+      .controls {
+        padding: 1.2rem;
+        background: #131937;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
       }
       button {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         padding: 0.8rem 1.6rem;
-        margin: 1rem;
         border: 0;
-        border-radius: 10px;
-        background: #4f8cff;
+        border-radius: 12px;
+        background: #6366f1;
         color: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+        transition:
+          transform 120ms ease,
+          background 120ms ease;
+      }
+      button:active {
+        transform: scale(0.97);
+      }
+      button.secondary {
+        background: #252b48;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+      }
+      #s {
+        margin: 0.5rem 0;
+        font-size: 0.95rem;
+        color: #a5b4fc;
       }
     </style>
   </head>
   <body>
-    <video id="v" autoplay muted playsinline></video>
-    <p id="s">Ready</p>
-    <button id="b">Connect Camera</button>
+    <div class="preview-container">
+      <video id="v" autoplay muted playsinline></video>
+    </div>
+    <div class="controls">
+      <p id="s" style="width: 100%">Ready to connect</p>
+      <button id="b">Connect Camera</button>
+      <button id="flip" class="secondary" style="display: none">
+        Flip Camera
+      </button>
+    </div>
     <script>
       const room = new URLSearchParams(location.search).get("s"),
         $ = (i) => document.getElementById(i);
@@ -42,12 +95,17 @@
         busy = false,
         offerSequence = 0,
         activeNegotiationId = null;
-      let iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+      let facingMode = "user"; // Default to front camera for face cam
+      let iceServers = [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+      ];
       let pendingIce = [];
       let messageQueue = Promise.resolve();
       const send = (o) =>
         ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
       let retryMs = 2000;
+
       function connect() {
         ws = new WebSocket(location.origin.replace(/^http/, "ws"));
         ws.onopen = () => {
@@ -55,10 +113,9 @@
           send({ t: "join", room, role: "phone" });
         };
         ws.onclose = (e) => {
-          // 4001: another phone page took over this session. Reconnecting would
-          // kick it back out and the two pages would fight (and hit the join rate limit).
           if (e.code === 4001) {
-            $("s").textContent = "Another device took over this camera session.";
+            $("s").textContent =
+              "Another device took over this camera session.";
             return;
           }
           setTimeout(connect, retryMs + Math.random() * 500);
@@ -102,6 +159,27 @@
             });
         };
       }
+
+      async function applySenderOptimizations(targetPc) {
+        const senders = targetPc.getSenders();
+        for (const sender of senders) {
+          if (sender.track && sender.track.kind === "video") {
+            try {
+              const params = sender.getParameters();
+              if (!params.encodings || !params.encodings.length) {
+                params.encodings = [{}];
+              }
+              // Prevent framerate drops: maintain fluid 30fps
+              params.encodings[0].degradationPreference = "maintain-framerate";
+              params.encodings[0].maxBitrate = 2500000; // 2.5 Mbps
+              await sender.setParameters(params);
+            } catch (err) {
+              console.warn("Could not set sender parameters:", err);
+            }
+          }
+        }
+      }
+
       async function offer() {
         if (busy) return;
         busy = true;
@@ -120,9 +198,11 @@
             });
           currentPc.onconnectionstatechange = () => {
             if (pc === currentPc)
-              $("s").textContent = "Connection: " + currentPc.connectionState;
+              $("s").textContent =
+                "Camera streaming (" + currentPc.connectionState + ")";
           };
           await currentPc.setLocalDescription(await currentPc.createOffer());
+          await applySenderOptimizations(currentPc);
           if (pc === currentPc && activeNegotiationId === negotiationId)
             send({
               t: "sig",
@@ -134,29 +214,36 @@
           busy = false;
         }
       }
+
+      async function getMediaStream(mode) {
+        const video = {
+          facingMode: mode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30, min: 20 },
+        };
+        const audio = {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        };
+        try {
+          return await navigator.mediaDevices.getUserMedia({ video, audio });
+        } catch {
+          return await navigator.mediaDevices.getUserMedia({
+            video,
+            audio: false,
+          });
+        }
+      }
+
       $("b").onclick = async () => {
         try {
-          const video = {
-            facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 },
-          };
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video,
-              audio: true,
-            });
-          } catch (audioError) {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video,
-              audio: false,
-            });
-            $("s").textContent =
-              "Camera connected; microphone unavailable: " + audioError.message;
-          }
+          $("s").textContent = "Starting camera…";
+          stream = await getMediaStream(facingMode);
           $("v").srcObject = stream;
           $("b").style.display = "none";
+          $("flip").style.display = "inline-flex";
           try {
             wake = await navigator.wakeLock.request("screen");
           } catch {}
@@ -168,9 +255,37 @@
           });
           offer();
         } catch (e) {
-          $("s").textContent = "Camera error: " + e.message;
+          $("s").textContent = "Camera access error: " + e.message;
         }
       };
+
+      $("flip").onclick = async () => {
+        try {
+          facingMode = facingMode === "user" ? "environment" : "user";
+          $("s").textContent = "Switching camera…";
+          const newStream = await getMediaStream(facingMode);
+          const oldStream = stream;
+          stream = newStream;
+          $("v").srcObject = stream;
+          if (oldStream) oldStream.getTracks().forEach((t) => t.stop());
+          if (pc) {
+            const videoTrack = stream.getVideoTracks()[0];
+            const videoSender = pc
+              .getSenders()
+              .find((s) => s.track && s.track.kind === "video");
+            if (videoSender && videoTrack) {
+              await videoSender.replaceTrack(videoTrack);
+              await applySenderOptimizations(pc);
+            } else {
+              offer();
+            }
+          }
+          $("s").textContent = "Camera streaming";
+        } catch (err) {
+          $("s").textContent = "Could not switch camera: " + err.message;
+        }
+      };
+
       connect();
     </script>
   </body>
