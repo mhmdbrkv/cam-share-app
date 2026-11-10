@@ -1,4 +1,4 @@
-const SERVER_URL = "https://cam-share-test.onrender.com";
+const SERVER_URL = "https://cam-share-app.onrender.com";
 const $ = (i) => document.getElementById(i);
 const S = {
   state: "idle",
