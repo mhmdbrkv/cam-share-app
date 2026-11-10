@@ -39,7 +39,9 @@
         pc,
         stream,
         wake,
-        busy = false;
+        busy = false,
+        offerSequence = 0,
+        activeNegotiationId = null;
       let iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
       let pendingIce = [];
       let messageQueue = Promise.resolve();
@@ -62,11 +64,22 @@
               if (d.t === "peer" && d.up && stream) offer();
               if (d.t === "sig" && pc) {
                 if (d.data.sdp) {
+                  if (
+                    (d.data.negotiationId &&
+                      d.data.negotiationId !== activeNegotiationId) ||
+                    pc.signalingState !== "have-local-offer"
+                  )
+                    return;
                   await pc.setRemoteDescription(d.data.sdp);
                   for (const candidate of pendingIce)
                     await pc.addIceCandidate(candidate);
                   pendingIce = [];
                 } else if (d.data.ice) {
+                  if (
+                    d.data.negotiationId &&
+                    d.data.negotiationId !== activeNegotiationId
+                  )
+                    return;
                   if (pc.remoteDescription)
                     await pc.addIceCandidate(d.data.ice);
                   else pendingIce.push(d.data.ice);
@@ -81,32 +94,56 @@
       async function offer() {
         if (busy) return;
         busy = true;
+        const negotiationId = `${Date.now()}-${++offerSequence}`;
+        activeNegotiationId = negotiationId;
         try {
           if (pc) pc.close();
           pendingIce = [];
-          pc = new RTCPeerConnection({ iceServers });
-          stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-          pc.onicecandidate = (e) =>
-            e.candidate && send({ t: "sig", data: { ice: e.candidate } });
-          pc.onconnectionstatechange = () =>
-            ($("s").textContent = "Connection: " + pc.connectionState);
-          await pc.setLocalDescription(await pc.createOffer());
-          send({ t: "sig", data: { sdp: pc.localDescription } });
+          const currentPc = (pc = new RTCPeerConnection({ iceServers }));
+          stream.getTracks().forEach((t) => currentPc.addTrack(t, stream));
+          currentPc.onicecandidate = (e) =>
+            e.candidate &&
+            send({
+              t: "sig",
+              data: { negotiationId, ice: e.candidate },
+            });
+          currentPc.onconnectionstatechange = () => {
+            if (pc === currentPc)
+              $("s").textContent = "Connection: " + currentPc.connectionState;
+          };
+          await currentPc.setLocalDescription(await currentPc.createOffer());
+          if (pc === currentPc && activeNegotiationId === negotiationId)
+            send({
+              t: "sig",
+              data: { negotiationId, sdp: currentPc.localDescription },
+            });
+        } catch (error) {
+          $("s").textContent = "Connection error: " + error.message;
         } finally {
           busy = false;
         }
       }
       $("b").onclick = async () => {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: "environment",
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              frameRate: { ideal: 30 },
-            },
-            audio: false,
-          });
+          const video = {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 },
+          };
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video,
+              audio: true,
+            });
+          } catch (audioError) {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video,
+              audio: false,
+            });
+            $("s").textContent =
+              "Camera connected; microphone unavailable: " + audioError.message;
+          }
           $("v").srcObject = stream;
           $("b").style.display = "none";
           try {

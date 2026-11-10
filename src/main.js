@@ -10,11 +10,16 @@ const {
 const path = require("path"),
   fs = require("fs"),
   crypto = require("crypto"),
+  { pathToFileURL } = require("url"),
   QR = require("qrcode");
 let win,
   rec = null,
   closing = false,
-  saveDir;
+  saveDir,
+  lastSavedFile = null,
+  pendingCapture = null,
+  pendingCaptureAudio = false,
+  captureSources = new Map();
 const p2 = (n) => String(n).padStart(2, "0");
 function stamp() {
   const d = new Date();
@@ -35,45 +40,119 @@ function cleanStale(dir) {
       .forEach((f) => fs.unlinkSync(path.join(dir, f)));
   } catch {}
 }
-app.whenReady().then(() => {
-  saveDir = path.join(app.getPath("videos"), "CamShare");
-  cleanStale(saveDir);
-  session.defaultSession.setDisplayMediaRequestHandler(async (_, cb) => {
-    const s = await desktopCapturer.getSources({ types: ["screen"] });
-    cb({ video: s[0] });
+app.commandLine.appendSwitch(
+  "disable-features",
+  "CalculateNativeWinOcclusion",
+);
+const hasInstanceLock = app.requestSingleInstanceLock();
+if (!hasInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.focus();
   });
-  win = new BrowserWindow({
-    width: 1200,
-    height: 820,
-    title: "CamShare",
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      backgroundThrottling: false,
-    },
-  });
-  win.loadFile(path.join(__dirname, "index.html"));
-  win.on("close", async (e) => {
-    if (!rec || closing) return;
-    e.preventDefault();
-    const r = await dialog.showMessageBox(win, {
-      type: "warning",
-      buttons: ["Cancel", "Stop & Close"],
-      defaultId: 0,
-      cancelId: 0,
-      message: "A recording is in progress.",
-      detail: "Stop & Close will save the recording first.",
+  app.whenReady().then(() => {
+    saveDir = path.join(app.getPath("videos"), "CamShare");
+    cleanStale(saveDir);
+    session.defaultSession.setDisplayMediaRequestHandler(async (request, cb) => {
+      try {
+        if (pendingCapture) {
+          cb({});
+          return;
+        }
+        const sources = await desktopCapturer.getSources({
+          types: ["screen"],
+          thumbnailSize: { width: 320, height: 200 },
+        });
+        if (!sources.length) {
+          cb({});
+          return;
+        }
+        pendingCapture = cb;
+        pendingCaptureAudio = request.audioRequested;
+        captureSources = new Map(sources.map((source) => [source.id, source]));
+        win.webContents.send(
+          "screen:sources",
+          sources.map((source) => ({
+            id: source.id,
+            name: source.name,
+            thumbnail: source.thumbnail.toDataURL(),
+          })),
+        );
+      } catch (error) {
+        if (pendingCapture === cb) {
+          pendingCapture = null;
+          pendingCaptureAudio = false;
+          captureSources.clear();
+        }
+        console.error("Could not enumerate screens:", error);
+        cb({});
+      }
     });
-    if (r.response === 1) {
-      closing = true;
-      win.webContents.send("stop-request");
-    }
+    win = new BrowserWindow({
+      width: 1200,
+      height: 820,
+      title: "CamShare",
+      webPreferences: {
+        preload: path.join(__dirname, "preload.js"),
+        contextIsolation: true,
+        nodeIntegration: false,
+        backgroundThrottling: false,
+      },
+    });
+    win.loadFile(path.join(__dirname, "index.html"));
+    win.on("close", async (e) => {
+      if (!rec) {
+        if (pendingCapture) pendingCapture({});
+        pendingCapture = null;
+        pendingCaptureAudio = false;
+        captureSources.clear();
+        return;
+      }
+      e.preventDefault();
+      if (closing) return;
+      const r = await dialog.showMessageBox(win, {
+        type: "warning",
+        buttons: ["Cancel", "Stop & Close"],
+        defaultId: 0,
+        cancelId: 0,
+        message: "A recording is in progress.",
+        detail: "Stop & Close will save the recording first.",
+      });
+      if (r.response === 1) {
+        closing = true;
+        win.webContents.send("stop-request");
+      }
+    });
   });
-});
+}
 app.on("window-all-closed", () => app.quit());
 
 ipcMain.handle("cfg:get", () => ({ dir: saveDir }));
+ipcMain.handle("screen:select", (_, id) => {
+  const source = captureSources.get(id);
+  if (!pendingCapture || !source)
+    throw new Error("Screen selection is no longer available");
+  const cb = pendingCapture;
+  const captureAudio = pendingCaptureAudio;
+  pendingCapture = null;
+  pendingCaptureAudio = false;
+  captureSources.clear();
+  cb({
+    video: source,
+    ...(captureAudio && process.platform === "win32"
+      ? { audio: "loopback" }
+      : {}),
+  });
+});
+ipcMain.handle("screen:cancel", () => {
+  if (pendingCapture) pendingCapture({});
+  pendingCapture = null;
+  pendingCaptureAudio = false;
+  captureSources.clear();
+});
 ipcMain.handle("dir:choose", async () => {
   const r = await dialog.showOpenDialog(win, {
     properties: ["openDirectory", "createDirectory"],
@@ -113,7 +192,7 @@ ipcMain.handle(
       rec.ws.write(Buffer.from(buf), (e) => (e ? rej(e) : res(true)));
     }),
 );
-ipcMain.handle("rec:stop", async () => {
+ipcMain.handle("rec:stop", async (_, durationMs) => {
   if (!rec) throw new Error("No active recording");
   const r = rec;
   let error = null;
@@ -128,8 +207,49 @@ ipcMain.handle("rec:stop", async () => {
   try {
     const size = fs.existsSync(r.tmp) ? fs.statSync(r.tmp).size : 0;
     if (!size) throw error || new Error("Empty recording");
-    fs.renameSync(r.tmp, r.final); // same directory -> no cross-volume rename
+    if (path.extname(r.final) === ".webm") {
+      const previousFileReader = global.FileReader;
+      global.FileReader = class {
+        readAsArrayBuffer(blob) {
+          blob.arrayBuffer().then(
+            (buffer) => {
+              this.result = buffer;
+              if (this.onloadend) this.onloadend();
+            },
+            (readError) => {
+              this.error = readError;
+              if (this.onerror) this.onerror(readError);
+              if (this.onloadend) this.onloadend();
+            },
+          );
+        }
+      };
+      try {
+        const fixWebmDuration = require("fix-webm-duration");
+        const original = fs.readFileSync(r.tmp);
+        const fixed = await fixWebmDuration(
+          new Blob([original], { type: "video/webm" }),
+          durationMs,
+          { logger: false },
+        );
+        fs.writeFileSync(r.tmp, Buffer.from(await fixed.arrayBuffer()));
+      } finally {
+        if (previousFileReader === undefined) delete global.FileReader;
+        else global.FileReader = previousFileReader;
+      }
+    }
+    while (true) {
+      try {
+        fs.linkSync(r.tmp, r.final);
+        break;
+      } catch (linkError) {
+        if (linkError.code !== "EEXIST") throw linkError;
+        r.final = uniqueName(saveDir, path.extname(r.final).slice(1));
+      }
+    }
+    fs.unlinkSync(r.tmp);
     rec = null;
+    lastSavedFile = r.final;
     if (closing) setImmediate(() => win.close());
     return {
       file: r.final,
@@ -153,7 +273,21 @@ ipcMain.handle("rec:abort", () => {
   }
 });
 ipcMain.handle("file:show", (_, f) => {
-  if (typeof f === "string" && f.startsWith(saveDir)) shell.showItemInFolder(f);
+  if (
+    typeof f === "string" &&
+    lastSavedFile &&
+    path.resolve(f) === path.resolve(lastSavedFile)
+  )
+    shell.showItemInFolder(lastSavedFile);
+});
+ipcMain.handle("file:url", (_, f) => {
+  if (
+    typeof f !== "string" ||
+    !lastSavedFile ||
+    path.resolve(f) !== path.resolve(lastSavedFile)
+  )
+    throw new Error("File is not the latest CamShare recording");
+  return pathToFileURL(lastSavedFile).href;
 });
 ipcMain.handle("qr", (_, url) =>
   QR.toDataURL(String(url), { width: 220, margin: 1 }),

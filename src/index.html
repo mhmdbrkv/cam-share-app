@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data:; media-src 'self' file: blob:; connect-src 'self' https: wss:; style-src 'self' 'unsafe-inline'"
+      content="default-src 'self'; img-src 'self' data:; media-src 'self' file: blob:; connect-src 'self' https://cam-share-app.onrender.com wss://cam-share-app.onrender.com; style-src 'self' 'unsafe-inline'"
     />
     <title>CamShare</title>
     <style>
@@ -36,6 +36,9 @@
         background: #000;
         border-radius: 8px;
       }
+      canvas {
+        touch-action: none;
+      }
       button {
         background: #2b303a;
         color: #eee;
@@ -63,14 +66,70 @@
         display: none;
         text-align: center;
       }
+      #screenPicker {
+        position: fixed;
+        inset: 0;
+        z-index: 2;
+        display: grid;
+        place-items: center;
+        background: #000a;
+      }
+      #screenPicker[hidden] {
+        display: none;
+      }
+      .pickerPanel {
+        max-width: min(900px, 90vw);
+        max-height: 85vh;
+        overflow: auto;
+        padding: 18px;
+        border-radius: 10px;
+        background: #1c1f25;
+      }
+      #screenSources {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .screenChoice {
+        width: 240px;
+        display: grid;
+        gap: 6px;
+        text-align: left;
+      }
+      .screenChoice img {
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        object-fit: contain;
+        background: #000;
+      }
       .mut {
         color: #8b93a1;
         font-size: 12px;
         word-break: break-all;
       }
+      .pip-size {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .pip-size input {
+        flex: 1;
+        min-width: 0;
+      }
+      #sizeValue {
+        min-width: 36px;
+        text-align: right;
+      }
     </style>
   </head>
   <body>
+    <div id="screenPicker" hidden>
+      <div class="pickerPanel">
+        <h3>Select a screen</h3>
+        <div id="screenSources"></div>
+        <button id="screenCancel">Cancel</button>
+      </div>
+    </div>
     <aside>
       <h3>1 · Pair phone</h3>
       <div hidden class="mut">Server: <span id="server"></span></div>
@@ -85,18 +144,16 @@
         ><input type="radio" name="mode" value="cam" checked /> Screen +
         Camera</label
       >
-      <label><input type="checkbox" id="aud" /> PC microphone</label>
+      <label><input type="checkbox" id="aud" /> Also record PC microphone</label>
+      <div class="mut">Screen audio is captured on Windows. Screen + Camera mode also records the phone microphone when permitted.</div>
       <h3>3 · PiP size</h3>
-      <input
-        id="size"
-        type="range"
-        min="10"
-        max="50"
-        value="25"
-        style="width: 100%"
-      />
+      <div class="pip-size">
+        <input id="size" type="range" min="10" max="50" value="25" />
+        <output id="sizeValue">25%</output>
+      </div>
       <div class="mut">
-        Drag the camera on the preview to move it. Scroll to resize.
+        Drag the camera to move it. Drag its lower-right handle or use this
+        slider to resize.
       </div>
       <h3>4 · Save to</h3>
       <div id="dir" class="mut"></div>
@@ -109,7 +166,7 @@
         <button id="stop" disabled>■ Stop</button> <span id="st">Idle</span>
       </div>
       <div id="done">
-        <video id="pv" controls></video>
+        <video id="pv" controls preload="metadata"></video>
         <div id="fn"></div>
         <button id="open">Open Folder</button>
         <button id="again">New Recording</button>

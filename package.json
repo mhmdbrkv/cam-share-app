@@ -7,7 +7,12 @@
     "server": "node server/server.js",
     "dist": "electron-builder"
   },
+  "files": [
+    "src/**/*",
+    "package.json"
+  ],
   "dependencies": {
+    "fix-webm-duration": "^1.0.6",
     "qrcode": "^1.5.4",
     "ws": "^8.18.0"
   },

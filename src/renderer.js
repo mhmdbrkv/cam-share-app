@@ -10,6 +10,7 @@ const S = {
   pip: { x: 0.72, y: 0.66, w: 0.25 },
   q: Promise.resolve(),
   pendingIce: [],
+  negotiationId: null,
   file: null,
 };
 const sv = document.createElement("video"),
@@ -20,6 +21,11 @@ const canvas = $("cv"),
   ctx = canvas.getContext("2d");
 let selectingScreen = false;
 let stopReason = "";
+let stopRequested = false;
+let recordMode = "cam";
+let recordingStartedAt = 0;
+let audioContext = null;
+let audioSources = [];
 
 const hasScreen = () =>
   !!S.screen &&
@@ -50,7 +56,7 @@ async function startScreen() {
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: 30 },
-      audio: false,
+      audio: true,
     });
     const track = stream.getVideoTracks()[0];
     if (!track) throw new Error("No screen video track was selected");
@@ -114,9 +120,10 @@ const camLive = () => {
   return !!(
     t &&
     t.readyState === "live" &&
+    !t.muted &&
     cv.videoWidth > 0 &&
     S.pc &&
-    S.pc.connectionState !== "failed"
+    S.pc.connectionState === "connected"
   );
 };
 function pipRect() {
@@ -131,25 +138,42 @@ function pipRect() {
     h: ph,
   };
 }
+function setPipSize(size) {
+  S.pip.w = Math.min(0.5, Math.max(0.1, size));
+  $("size").value = String(Math.round(S.pip.w * 100));
+  $("sizeValue").textContent = `${Math.round(S.pip.w * 100)}%`;
+}
 setInterval(() => {
   // setInterval + backgroundThrottling:false keeps frames flowing when minimized
   if (!S.screen || !sv.videoWidth) return;
   ctx.drawImage(sv, 0, 0, canvas.width, canvas.height);
-  if (camLive()) {
+  const pipEnabled = mr
+    ? recordMode === "cam"
+    : document.querySelector("input[name=mode]:checked").value === "cam";
+  if (pipEnabled && camLive()) {
     const r = pipRect();
-    ctx.save();
-    ctx.translate(2 * r.x + r.w, 0);
-    ctx.scale(-1, 1);
+    const track = cv.srcObject.getVideoTracks()[0];
+    if (track.getSettings().facingMode === "user") {
+      ctx.save();
+      ctx.translate(2 * r.x + r.w, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(cv, r.x, r.y, r.w, r.h);
-    ctx.restore();
+    if (track.getSettings().facingMode === "user") ctx.restore();
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 3;
     ctx.strokeRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(r.x + r.w - 18, r.y + r.h - 18, 18, 18);
+    ctx.strokeStyle = "#14161a";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(r.x + r.w - 18, r.y + r.h - 18, 18, 18);
   }
 }, 1000 / 30);
 
-/* ---------- PiP controller (position/size only; compositor just reads it) ---------- */
-let drag = null;
+/* ---------- PiP controller ---------- */
+let drag = null,
+  resizing = false;
 const toCanvas = (e) => {
   const b = canvas.getBoundingClientRect();
   return {
@@ -162,30 +186,41 @@ canvas.onpointerdown = (e) => {
   const p = toCanvas(e),
     r = pipRect();
   if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) {
-    drag = { dx: p.x - r.x, dy: p.y - r.y };
+    resizing = p.x >= r.x + r.w - 24 && p.y >= r.y + r.h - 24;
+    drag = { dx: p.x - r.x, dy: p.y - r.y, x: r.x };
     canvas.setPointerCapture(e.pointerId);
   }
 };
 canvas.onpointermove = (e) => {
   if (!drag) return;
   const p = toCanvas(e);
+  if (resizing) {
+    setPipSize((p.x - drag.x) / canvas.width);
+    return;
+  }
   S.pip.x = (p.x - drag.dx) / canvas.width;
   S.pip.y = (p.y - drag.dy) / canvas.height;
 };
-canvas.onpointerup = () => (drag = null);
-canvas.onwheel = (e) => {
-  S.pip.w = Math.min(0.5, Math.max(0.1, S.pip.w - e.deltaY * 0.0005));
-  $("size").value = S.pip.w * 100;
+canvas.onpointerup = () => {
+  drag = null;
+  resizing = false;
 };
-$("size").oninput = (e) => (S.pip.w = e.target.value / 100);
+canvas.onwheel = (e) => {
+  setPipSize(S.pip.w - e.deltaY * 0.0005);
+};
+$("size").oninput = (e) => setPipSize(e.target.value / 100);
+setPipSize(S.pip.w);
 
 /* ---------- camera stream manager + signaling (phone is the offerer) ---------- */
 function onSig(d) {
   S.q = S.q
     .then(async () => {
       if (d.sdp) {
+        const negotiationId =
+          d.negotiationId || `legacy-${Date.now()}-${Math.random()}`;
         if (S.pc) S.pc.close();
         S.pendingIce = [];
+        S.negotiationId = negotiationId;
         const pc = (S.pc = new RTCPeerConnection({
           iceServers: S.iceServers,
         }));
@@ -194,7 +229,8 @@ function onSig(d) {
           cv.play();
         };
         pc.onicecandidate = (e) =>
-          e.candidate && sendSignal({ ice: e.candidate });
+          e.candidate &&
+          sendSignal({ negotiationId, ice: e.candidate });
         pc.onconnectionstatechange = () => {
           $("cam").textContent = "Phone: " + pc.connectionState;
           if (["failed", "closed"].includes(pc.connectionState))
@@ -205,8 +241,10 @@ function onSig(d) {
           await pc.addIceCandidate(candidate);
         S.pendingIce = [];
         await pc.setLocalDescription(await pc.createAnswer());
-        sendSignal({ sdp: pc.localDescription });
+        if (S.pc === pc && S.negotiationId === negotiationId)
+          sendSignal({ negotiationId, sdp: pc.localDescription });
       } else if (d.ice && S.pc) {
+        if (d.negotiationId && d.negotiationId !== S.negotiationId) return;
         if (S.pc.remoteDescription) await S.pc.addIceCandidate(d.ice);
         else S.pendingIce.push(d.ice);
       }
@@ -250,8 +288,10 @@ let mr = null,
 async function startRecording() {
   setState("preparing");
   stopReason = "";
+  stopRequested = false;
   try {
     const mode = document.querySelector("input[name=mode]:checked").value;
+    recordMode = mode;
     if (mode === "cam" && !camLive())
       throw new Error("Phone camera is not streaming");
     const p = await api.prepare();
@@ -260,20 +300,36 @@ async function startRecording() {
       !confirm(`Only ${(p.free / 1e9).toFixed(1)} GB free. Continue anyway?`)
     )
       return setState("idle");
-    outStream =
-      mode === "cam"
-        ? canvas.captureStream(30)
-        : new MediaStream(S.screen.getVideoTracks());
+    outStream = canvas.captureStream(30);
     if ($("aud").checked) {
       try {
         mic = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mic.getAudioTracks().forEach((t) => outStream.addTrack(t));
       } catch {
         if (!confirm("Microphone unavailable. Continue without audio?")) {
           cleanupRecordingStreams();
           return setState("idle");
         }
       }
+    }
+    const audioInputs = [];
+    const addAudioInput = (stream) => {
+      if (stream && stream.getAudioTracks().length) audioInputs.push(stream);
+    };
+    addAudioInput(S.screen);
+    if (mode === "cam") addAudioInput(cv.srcObject);
+    addAudioInput(mic);
+    if (audioInputs.length) {
+      audioContext = new AudioContext();
+      const destination = audioContext.createMediaStreamDestination();
+      for (const stream of audioInputs) {
+        const source = audioContext.createMediaStreamSource(
+          new MediaStream(stream.getAudioTracks()),
+        );
+        source.connect(destination);
+        audioSources.push(source);
+      }
+      outStream.addTrack(destination.stream.getAudioTracks()[0]);
+      await audioContext.resume();
     }
     const mime = [
       "video/webm;codecs=vp9,opus",
@@ -287,12 +343,13 @@ async function startRecording() {
       mimeType: mime,
       videoBitsPerSecond: 8e6,
     });
+    const recorder = mr;
     let chain = Promise.resolve(),
       pending = 0,
       err = null;
     const fail = (e) => {
       err = err || e;
-      if (mr.state !== "inactive") mr.stop();
+      if (recorder.state !== "inactive") recorder.stop();
     };
     mr.ondataavailable = (e) => {
       if (!e.data.size || err) return;
@@ -307,28 +364,39 @@ async function startRecording() {
         .catch(fail);
     };
     mr.onstop = async () => {
+      mr = null;
       setState("finalizing");
       await chain;
       cleanupRecordingStreams();
       try {
-        const r = await api.stop();
+        const r = await api.stop(Date.now() - recordingStartedAt);
         S.file = r.file;
+        const partialError = err || r.error;
+        const partial = r.partial || !!err;
         $("fn").textContent =
-          r.file + (r.partial ? " (partial: " + r.error + ")" : "");
-        $("pv").src =
-          "file://" +
-          (r.file.startsWith("/") ? "" : "/") +
-          encodeURI(r.file.replace(/\\/g, "/"));
+          r.file + (partial ? " (partial: " + partialError + ")" : "");
+        $("pv").src = await api.fileUrl(r.file);
+        $("pv").load();
         const messages = [];
         if (stopReason) messages.push(`${stopReason}; recording saved`);
-        if (r.partial) messages.push(`partial: ${r.error}`);
+        if (partial)
+          messages.push(
+            `Partial file: ${partialError || "recording was truncated"}`,
+          );
         setState("completed", messages.join(" — ") || "Completed");
       } catch (e) {
         setState("error", "Save failed: " + e.message);
       }
     };
     mr.start(1000);
-    setState("recording", "Recording…");
+    recordingStartedAt = Date.now();
+    setState(
+      "recording",
+      audioInputs.length
+        ? "Recording…"
+        : "Recording… (no audio source available)",
+    );
+    if (stopRequested && mr.state !== "inactive") mr.stop();
   } catch (e) {
     cleanupRecordingStreams();
     await api.abort();
@@ -342,6 +410,13 @@ function cleanupRecordingStreams() {
       if (!screenTracks.has(track)) track.stop();
     });
   if (mic) mic.getTracks().forEach((track) => track.stop());
+  audioSources.forEach((source) => source.disconnect());
+  audioSources = [];
+  if (audioContext && audioContext.state !== "closed")
+    audioContext.close().catch((error) =>
+      console.error("Could not close audio mixer:", error),
+    );
+  audioContext = null;
   outStream = null;
   mic = null;
 }
@@ -351,12 +426,52 @@ $("stop").onclick = () => {
   mr.stop();
 };
 api.onStopRequest(() => {
+  stopRequested = true;
   if (mr && mr.state !== "inactive") mr.stop();
 });
 $("open").onclick = () => api.showFile(S.file);
-$("again").onclick = () => setState("idle");
+$("again").onclick = () => {
+  $("pv").pause();
+  $("pv").removeAttribute("src");
+  $("pv").load();
+  $("fn").textContent = "";
+  S.file = null;
+  setState("idle");
+};
 $("screenBtn").onclick = startScreen;
 $("pick").onclick = async () => ($("dir").textContent = await api.chooseDir());
+
+api.onScreenSources((sources) => {
+  const picker = $("screenPicker"),
+    list = $("screenSources");
+  list.replaceChildren();
+  for (const source of sources) {
+    const button = document.createElement("button"),
+      image = document.createElement("img"),
+      label = document.createElement("span");
+    button.type = "button";
+    button.className = "screenChoice";
+    image.src = source.thumbnail;
+    image.alt = "";
+    label.textContent = source.name;
+    button.append(image, label);
+    button.onclick = async () => {
+      try {
+        await api.selectScreen(source.id);
+      } catch (error) {
+        console.error("Could not select screen:", error);
+      } finally {
+        picker.hidden = true;
+      }
+    };
+    list.append(button);
+  }
+  picker.hidden = false;
+});
+$("screenCancel").onclick = async () => {
+  $("screenPicker").hidden = true;
+  await api.cancelScreen();
+};
 
 (async () => {
   $("dir").textContent = (await api.config()).dir;
