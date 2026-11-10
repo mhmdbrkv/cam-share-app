@@ -37,10 +37,29 @@ function getIceServers() {
   return servers;
 }
 const iceServers = getIceServers();
-const page = () => fs.readFileSync(path.join(__dirname, "public", "m.html"));
-const server = http.createServer((_, res) => {
-  res.writeHead(200, { "Content-Type": "text/html" });
-  res.end(page());
+const landingPage = fs.readFileSync(
+  path.join(__dirname, "public", "index.html"),
+);
+const cameraPage = fs.readFileSync(path.join(__dirname, "public", "m.html"));
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url, "http://localhost");
+  if (url.pathname !== "/") {
+    res.writeHead(404);
+    res.end("Not found");
+    return;
+  }
+  if (url.searchParams.has("s")) {
+    if (!/^[a-f0-9]{8,32}$/.test(url.searchParams.get("s"))) {
+      res.writeHead(400);
+      res.end("Invalid camera room");
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(cameraPage);
+    return;
+  }
+  res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+  res.end(landingPage);
 });
 const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
 const rooms = new Map();

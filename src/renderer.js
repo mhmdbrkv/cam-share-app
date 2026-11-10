@@ -137,7 +137,11 @@ setInterval(() => {
   ctx.drawImage(sv, 0, 0, canvas.width, canvas.height);
   if (camLive()) {
     const r = pipRect();
+    ctx.save();
+    ctx.translate(2 * r.x + r.w, 0);
+    ctx.scale(-1, 1);
     ctx.drawImage(cv, r.x, r.y, r.w, r.h);
+    ctx.restore();
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 3;
     ctx.strokeRect(r.x, r.y, r.w, r.h);

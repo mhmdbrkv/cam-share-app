@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Record your screen and use your phone as a camera."
+    />
+    <title>CamShare</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        color: #20243a;
+        background: #f7f8fc;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        min-width: 320px;
+        margin: 0;
+        background:
+          radial-gradient(ellipse at 78% 24%, #e6e9ff 0, transparent 34rem),
+          #f7f8fc;
+      }
+      a {
+        color: inherit;
+      }
+      .wrap {
+        width: min(1120px, calc(100% - 48px));
+        margin: 0 auto;
+      }
+      header {
+        display: flex;
+        height: 82px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #e8eaf2;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 18px;
+        font-weight: 750;
+        letter-spacing: -0.04em;
+        text-decoration: none;
+      }
+      .brand-mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 11px;
+        background: #6258e8;
+        color: white;
+        font-size: 18px;
+      }
+      .github {
+        color: #596078;
+        font-size: 14px;
+        font-weight: 550;
+        text-decoration: none;
+      }
+      .github:hover,
+      footer a:hover {
+        color: #5146d8;
+      }
+      main {
+        padding: 82px 0 94px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 0.94fr 1.06fr;
+        align-items: center;
+        gap: 56px;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #5b52d7;
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .eyebrow::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #71b88b;
+        content: "";
+      }
+      h1 {
+        max-width: 530px;
+        margin: 18px 0;
+        font-size: clamp(42px, 5.3vw, 64px);
+        font-weight: 720;
+        line-height: 1.04;
+        letter-spacing: -0.065em;
+      }
+      .intro {
+        max-width: 465px;
+        margin: 0;
+        color: #656b80;
+        font-size: 17px;
+        line-height: 1.7;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 15px;
+        margin-top: 28px;
+      }
+      .download {
+        display: inline-flex;
+        min-height: 50px;
+        align-items: center;
+        justify-content: center;
+        padding: 0 19px;
+        border: 1px solid #5147d4;
+        border-radius: 9px;
+        background: #6258e8;
+        box-shadow: 0 8px 18px #554bd52e;
+        color: white;
+        font-size: 14px;
+        font-weight: 650;
+        text-decoration: none;
+        transition:
+          transform 150ms ease,
+          background 150ms ease,
+          box-shadow 150ms ease;
+      }
+      .download::after {
+        margin-left: 12px;
+        content: "↓";
+        font-size: 17px;
+      }
+      .download:hover {
+        transform: translateY(-2px);
+        background: #5147d4;
+        box-shadow: 0 11px 22px #554bd53b;
+      }
+      .note {
+        color: #777d90;
+        font-size: 12px;
+      }
+      .mockup-wrap {
+        position: relative;
+        padding: 22px 0 18px 20px;
+      }
+      .mockup-wrap::before {
+        position: absolute;
+        z-index: -1;
+        top: 0;
+        right: -15px;
+        bottom: 0;
+        left: 52px;
+        border-radius: 40% 40% 28px 28px;
+        background: linear-gradient(145deg, #e4e6ff, #ecebff 60%, #e1edfa);
+        content: "";
+        transform: rotate(3deg);
+      }
+      .app-window {
+        overflow: hidden;
+        border: 1px solid #dfe1ea;
+        border-radius: 13px;
+        background: #1b1e26;
+        box-shadow:
+          0 28px 65px #34365329,
+          0 4px 12px #292b4014;
+        transform: rotate(-1.5deg);
+      }
+      .window-bar {
+        display: flex;
+        height: 35px;
+        align-items: center;
+        gap: 6px;
+        padding: 0 12px;
+        background: #252831;
+      }
+      .window-bar span {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #696d78;
+      }
+      .window-bar span:first-child {
+        background: #ed827b;
+      }
+      .window-bar span:nth-child(2) {
+        background: #eabe68;
+      }
+      .window-bar span:nth-child(3) {
+        background: #76c28a;
+      }
+      .window-title {
+        margin-left: auto;
+        color: #969aa8;
+        font-size: 10px;
+      }
+      .app-content {
+        display: grid;
+        grid-template-columns: 116px 1fr;
+        min-height: 250px;
+      }
+      .app-sidebar {
+        padding: 15px 11px;
+        background: #20232c;
+        color: #c7c9d2;
+      }
+      .sidebar-label {
+        margin-bottom: 12px;
+        color: #898e9c;
+        font-size: 9px;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .qr-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 15px;
+      }
+      .qr {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 2px;
+        padding: 4px;
+        border-radius: 3px;
+        background: white;
+      }
+      .qr i {
+        background: #272a32;
+      }
+      .qr i:nth-child(3n),
+      .qr i:nth-child(4n + 1) {
+        background: white;
+      }
+      .connected {
+        color: #a7d7b1;
+        font-size: 8px;
+      }
+      .app-option {
+        margin: 9px 0;
+        font-size: 9px;
+      }
+      .app-option::before {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: 5px;
+        border: 1px solid #737887;
+        border-radius: 50%;
+        content: "";
+      }
+      .record-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background:
+          radial-gradient(ellipse at 50% 65%, #3b466b, transparent 58%),
+          #171920;
+      }
+      .screen-preview {
+        position: relative;
+        display: grid;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid #545b70;
+        border-radius: 6px;
+        background:
+          linear-gradient(145deg, #35446a 0%, #555c80 49%, #293452 50%, #20283e);
+      }
+      .screen-preview::before,
+      .screen-preview::after {
+        position: absolute;
+        border: 1px solid #ffffff18;
+        border-radius: 50%;
+        content: "";
+      }
+      .screen-preview::before {
+        width: 175px;
+        height: 175px;
+      }
+      .screen-preview::after {
+        width: 110px;
+        height: 110px;
+      }
+      .camera-preview {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        width: 27%;
+        aspect-ratio: 0.78;
+        overflow: hidden;
+        border: 2px solid #f2f2f6;
+        border-radius: 6px;
+        background:
+          radial-gradient(ellipse at 50% 37%, #ebc7a8 0 14%, transparent 15%),
+          radial-gradient(ellipse at 50% 100%, #576a8c 0 35%, transparent 36%),
+          linear-gradient(155deg, #d5a997, #777ba0);
+        box-shadow: 0 4px 12px #10121a66;
+      }
+      .record-controls {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 13px;
+        color: #b7bac5;
+        font-size: 9px;
+      }
+      .record-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #f06469;
+        box-shadow: 0 0 0 3px #f0646930;
+      }
+      .steps {
+        margin-top: 98px;
+        padding-top: 26px;
+        border-top: 1px solid #e3e5ee;
+      }
+      .steps-heading {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 680;
+        letter-spacing: -0.03em;
+      }
+      .steps-heading p {
+        margin: 0;
+        color: #777d90;
+        font-size: 13px;
+      }
+      ol {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      li {
+        min-height: 142px;
+        padding: 18px;
+        border: 1px solid #e6e8f0;
+        border-radius: 11px;
+        background: #fff;
+        color: #70768a;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .step-number {
+        display: grid;
+        width: 27px;
+        height: 27px;
+        place-items: center;
+        margin-bottom: 13px;
+        border-radius: 8px;
+        background: #efeeff;
+        color: #5b52d7;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      li strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #292d42;
+        font-size: 14px;
+      }
+      footer {
+        display: flex;
+        justify-content: space-between;
+        padding: 22px 0 30px;
+        border-top: 1px solid #e3e5ee;
+        color: #858a9a;
+        font-size: 12px;
+      }
+      footer a {
+        text-decoration: none;
+      }
+      @media (max-width: 760px) {
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 34px;
+        }
+        .mockup-wrap {
+          width: min(540px, 100%);
+          margin: 0 auto;
+        }
+        .steps {
+          margin-top: 70px;
+        }
+      }
+      @media (max-width: 560px) {
+        .wrap {
+          width: min(100% - 36px, 460px);
+        }
+        header {
+          height: 70px;
+        }
+        main {
+          padding: 58px 0 68px;
+        }
+        h1 {
+          font-size: 44px;
+        }
+        .intro {
+          font-size: 15px;
+        }
+        .actions {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .note {
+          margin: 0;
+        }
+        .mockup-wrap {
+          padding-left: 6px;
+        }
+        .app-content {
+          grid-template-columns: 92px 1fr;
+          min-height: 195px;
+        }
+        .app-sidebar {
+          padding: 12px 8px;
+        }
+        .qr {
+          width: 34px;
+          height: 34px;
+        }
+        .record-area {
+          padding: 12px;
+        }
+        .steps-heading {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 5px;
+        }
+        ol {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        li {
+          min-height: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">C</span>
+        CamShare
+      </a>
+      <a class="github" href="https://github.com/mhmdbrkv/cam-share-test"
+        >GitHub</a
+      >
+    </header>
+    <main class="wrap">
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <div class="eyebrow">Screen recording, with your phone</div>
+          <h1 id="hero-title">Your phone camera, right in the recording.</h1>
+          <p class="intro">
+            CamShare puts your phone camera over a screen recording. Scan a QR
+            code to connect, then save the video on your PC.
+          </p>
+          <div class="actions">
+            <a
+              class="download"
+              href="https://github.com/mhmdbrkv/cam-share-test/releases/latest/download/CamShare-Setup.exe"
+              >Download for Windows</a
+            >
+            <span class="note">Windows installer</span>
+          </div>
+        </div>
+        <div class="mockup-wrap" aria-hidden="true">
+          <div class="app-window">
+            <div class="window-bar">
+              <span></span><span></span><span></span>
+              <div class="window-title">CamShare</div>
+            </div>
+            <div class="app-content">
+              <div class="app-sidebar">
+                <div class="sidebar-label">Pair phone</div>
+                <div class="qr-row">
+                  <div class="qr">
+                    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i
+                    ></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i
+                    ></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i
+                    ></i>
+                  </div>
+                  <span class="connected">Ready to<br />connect</span>
+                </div>
+                <div class="sidebar-label">Mode</div>
+                <div class="app-option">Screen + Camera</div>
+                <div class="sidebar-label">Save to</div>
+              </div>
+              <div class="record-area">
+                <div class="screen-preview">
+                  <div class="camera-preview"></div>
+                </div>
+                <div class="record-controls">
+                  <span class="record-dot"></span>
+                  Record
+                  <span>·</span>
+                  Select screen
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="steps" aria-labelledby="steps-title">
+        <div class="steps-heading">
+          <h2 id="steps-title">Up and running in a minute</h2>
+          <p>No account needed</p>
+        </div>
+        <ol>
+          <li>
+            <span class="step-number">1</span>
+            <strong>Open CamShare</strong>
+            Choose the screen you want to record.
+          </li>
+          <li>
+            <span class="step-number">2</span>
+            <strong>Scan the QR code</strong>
+            On your phone, tap Connect Camera.
+          </li>
+          <li>
+            <span class="step-number">3</span>
+            <strong>Start recording</strong>
+            Your video is saved on your PC.
+          </li>
+        </ol>
+      </section>
+    </main>
+    <footer class="wrap">
+      <span>CamShare</span>
+      <a href="https://github.com/mhmdbrkv/cam-share-test">View the source</a>
+    </footer>
+  </body>
+</html>

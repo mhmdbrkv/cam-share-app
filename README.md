@@ -29,3 +29,10 @@ credentials when available. They are delivered to paired clients to establish
 the media connection.
 
 Build installers with `npm run dist`.
+
+## Publish the Windows download
+
+The Render landing page links to the latest GitHub release. Build the Windows
+installer with `npm run dist`, then attach `dist/CamShare-Setup.exe` to a
+published release in this repository. The landing page's download button will
+then serve that installer.
