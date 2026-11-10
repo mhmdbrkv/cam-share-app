@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; media-src 'self' file: blob:; connect-src ws: wss:; style-src 'self' 'unsafe-inline'">
+<title>CamShare</title>
+<style>
+body{margin:0;font:14px system-ui;background:#14161a;color:#e8e8e8;display:flex;height:100vh}
+aside{width:290px;padding:16px;background:#1c1f25;overflow:auto}main{flex:1;padding:16px;display:flex;flex-direction:column;align-items:center}
+canvas,#done video{max-width:100%;max-height:68vh;background:#000;border-radius:8px}
+button,input[type=text]{background:#2b303a;color:#eee;border:1px solid #3a4150;border-radius:6px;padding:8px 12px;margin:4px 0}
+button.rec{background:#d33;border:0;font-weight:700}button:disabled{opacity:.4}label{display:block;margin:6px 0}h3{margin:14px 0 6px}
+#done{display:none;text-align:center}.mut{color:#8b93a1;font-size:12px;word-break:break-all}
+</style></head><body>
+<aside>
+<h3>1 · Pair phone</h3>
+<input id="srv" type="text" style="width:100%;box-sizing:border-box" placeholder="https://your-server.onrender.com">
+<button id="apply">Apply server</button><br><img id="qr" width="220" alt=""><div id="cam" class="mut">Phone: not connected</div>
+<button id="screenBtn">Select screen</button><br>
+<h3>2 · Mode</h3>
+<label><input type="radio" name="mode" value="screen"> Screen Only</label>
+<label><input type="radio" name="mode" value="cam" checked> Screen + Camera</label>
+<label><input type="checkbox" id="aud"> PC microphone</label>
+<h3>3 · PiP size</h3><input id="size" type="range" min="10" max="50" value="25" style="width:100%">
+<div class="mut">Drag the camera on the preview to move it. Scroll to resize.</div>
+<h3>4 · Save to</h3><div id="dir" class="mut"></div><button id="pick">Change folder</button>
+</aside>
+<main>
+<canvas id="cv"></canvas>
+<div style="margin-top:12px"><button id="go" class="rec">● Record</button> <button id="stop" disabled>■ Stop</button> <span id="st">Idle</span></div>
+<div id="done"><video id="pv" controls></video><div id="fn"></div><button id="open">Open Folder</button> <button id="again">New Recording</button></div>
+</main><script src="renderer.js"></script></body></html>
