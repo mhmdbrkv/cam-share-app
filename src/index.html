@@ -1,70 +1,337 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; img-src 'self' data:; media-src 'self' file: blob:; connect-src 'self' https://cam-share-app.onrender.com wss://cam-share-app.onrender.com; style-src 'self' 'unsafe-inline'"
     />
     <title>CamShare</title>
     <style>
+      :root {
+        color-scheme: light;
+        --paper: #e8edf0;
+        --ink: #162330;
+        --muted: #435663;
+        --line: #c5d0d7;
+        --rec: #d12b24;
+        --rec-dark: #a91f19;
+        --steel: #1f4a5e;
+        --steel-2: #327288;
+        font-family:
+          "Segoe UI Variable Display",
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
-        font: 14px system-ui;
-        background: #14161a;
-        color: #e8e8e8;
+        min-width: 360px;
+        min-height: 100vh;
         display: flex;
-        height: 100vh;
+        background:
+          radial-gradient(ellipse at 82% 12%, rgba(255, 255, 255, 0.72), transparent 34rem),
+          var(--paper);
       }
       aside {
-        width: 290px;
-        padding: 16px;
-        background: #1c1f25;
+        display: flex;
+        flex: 0 0 320px;
+        flex-direction: column;
+        gap: 20px;
+        width: 320px;
+        padding: 24px 22px;
+        border-right: 1px solid rgba(22, 35, 48, 0.1);
+        background: rgba(245, 248, 249, 0.84);
         overflow: auto;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--line);
+        font-size: 19px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .brand-mark {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        border-radius: 10px;
+        background: linear-gradient(140deg, #2a7a9b, #1b2d40);
+        box-shadow: 0 7px 16px rgba(20, 41, 58, 0.2);
+      }
+      .brand-mark svg {
+        width: 21px;
+        height: 21px;
+      }
+      .sidebar-intro h1 {
+        margin: 0;
+        font-size: 23px;
+        letter-spacing: -0.04em;
+      }
+      .sidebar-intro p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .setup-section {
+        padding: 16px;
+        border: 1px solid rgba(22, 35, 48, 0.08);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 5px 16px rgba(22, 35, 48, 0.04);
+      }
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0 0 12px;
+      }
+      .step-index {
+        display: grid;
+        flex: 0 0 27px;
+        width: 27px;
+        height: 27px;
+        place-items: center;
+        border-radius: 9px;
+        background: #e5eef1;
+        color: var(--steel);
+        font-size: 11px;
+        font-weight: 800;
+      }
+      h2 {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: -0.01em;
       }
       main {
         flex: 1;
-        padding: 16px;
+        min-width: 0;
+        min-height: 100vh;
+        padding: 30px clamp(22px, 4vw, 56px);
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
+        gap: 18px;
+      }
+      .stage-heading {
+        display: flex;
+        width: min(100%, 1000px);
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .stage-heading h2 {
+        font-size: 20px;
+        letter-spacing: -0.03em;
+      }
+      .stage-heading p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .preview-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 11px;
+        border: 1px solid rgba(22, 35, 48, 0.09);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.65);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .preview-label::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--steel-2);
+        content: "";
+      }
+      .preview-frame {
+        position: relative;
+        display: grid;
+        width: min(100%, 1000px);
+        min-height: min(58vh, 560px);
+        padding: 20px;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        background: linear-gradient(145deg, #1f4a5e, #162330);
+        box-shadow:
+          0 24px 60px rgba(22, 35, 48, 0.19),
+          inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      }
+      .preview-frame:has(canvas:not([width]))::after {
+        position: absolute;
+        inset: 20px;
+        display: grid;
+        place-items: center;
+        border: 1px dashed rgba(255, 255, 255, 0.28);
+        border-radius: 12px;
+        color: rgba(255, 255, 255, 0.78);
+        content: "Select a screen to begin";
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        pointer-events: none;
+      }
+      canvas:not([width]) {
+        display: none;
       }
       canvas,
       #done video {
         max-width: 100%;
-        max-height: 68vh;
+        max-height: calc(100vh - 220px);
         background: #000;
-        border-radius: 8px;
+        border-radius: 10px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
       }
       canvas {
         touch-action: none;
       }
       button {
-        background: #2b303a;
-        color: #eee;
-        border: 1px solid #3a4150;
-        border-radius: 6px;
-        padding: 8px 12px;
-        margin: 4px 0;
+        min-height: 38px;
+        padding: 8px 13px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #fff;
+        color: var(--ink);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 650;
+        cursor: pointer;
+        transition:
+          background 150ms ease,
+          border-color 150ms ease,
+          box-shadow 150ms ease,
+          transform 150ms ease;
+      }
+      button:not(:disabled):hover {
+        border-color: #9fb3bd;
+        background: #f5f8f9;
+        box-shadow: 0 4px 10px rgba(22, 35, 48, 0.08);
+        transform: translateY(-1px);
       }
       button.rec {
-        background: #d33;
+        border-color: var(--rec);
+        background: var(--rec);
         border: 0;
-        font-weight: 700;
+        color: #fff;
+        font-weight: 750;
+      }
+      button.rec:not(:disabled):hover {
+        background: var(--rec-dark);
       }
       button:disabled {
-        opacity: 0.4;
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      :focus-visible {
+        outline: 3px solid rgba(50, 114, 136, 0.55);
+        outline-offset: 3px;
       }
       label {
-        display: block;
-        margin: 6px 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 10px 0;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.4;
+        cursor: pointer;
       }
-      h3 {
-        margin: 14px 0 6px;
+      input[type="radio"],
+      input[type="checkbox"] {
+        flex: 0 0 auto;
+        margin: 2px 0 0;
+        accent-color: var(--steel-2);
       }
       #done {
         display: none;
+        width: min(100%, 640px);
+        padding: 18px;
+        border: 1px solid rgba(22, 35, 48, 0.1);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.9);
         text-align: center;
+        box-shadow: 0 12px 30px rgba(22, 35, 48, 0.1);
+      }
+      #done video {
+        width: 100%;
+      }
+      #fn {
+        margin: 12px 0;
+        color: var(--muted);
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+      #qr {
+        display: block;
+        width: min(220px, 100%);
+        height: auto;
+        margin: 0 auto 12px;
+        padding: 8px;
+        border: 1px solid rgba(22, 35, 48, 0.08);
+        border-radius: 12px;
+        background: #fff;
+      }
+      #cam {
+        width: fit-content;
+        max-width: 100%;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: #e9f1f3;
+        color: var(--steel);
+        font-size: 11px;
+        font-weight: 700;
+      }
+      #dir {
+        margin-bottom: 12px;
+      }
+      .record-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border: 1px solid rgba(22, 35, 48, 0.1);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: 0 6px 18px rgba(22, 35, 48, 0.06);
+      }
+      #st {
+        margin-left: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      .mut {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
       }
       #screenPicker {
         position: fixed;
@@ -72,7 +339,9 @@
         z-index: 2;
         display: grid;
         place-items: center;
-        background: #000a;
+        padding: 20px;
+        background: rgba(14, 27, 38, 0.52);
+        backdrop-filter: blur(7px);
       }
       #screenPicker[hidden] {
         display: none;
@@ -81,9 +350,15 @@
         max-width: min(900px, 90vw);
         max-height: 85vh;
         overflow: auto;
-        padding: 18px;
-        border-radius: 10px;
-        background: #1c1f25;
+        padding: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        border-radius: 18px;
+        background: #f7fafb;
+        box-shadow: 0 24px 70px rgba(8, 20, 28, 0.3);
+      }
+      .pickerPanel h2 {
+        margin-bottom: 16px;
+        font-size: 20px;
       }
       #screenSources {
         display: flex;
@@ -96,16 +371,15 @@
         gap: 6px;
         text-align: left;
       }
+      .screenChoice:hover {
+        border-color: var(--steel-2);
+      }
       .screenChoice img {
         width: 100%;
         aspect-ratio: 16 / 10;
         object-fit: contain;
-        background: #000;
-      }
-      .mut {
-        color: #8b93a1;
-        font-size: 12px;
-        word-break: break-all;
+        border-radius: 5px;
+        background: #162330;
       }
       .pip-size {
         display: flex;
@@ -119,51 +393,153 @@
       #sizeValue {
         min-width: 36px;
         text-align: right;
+        color: var(--steel);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+      @media (max-width: 820px) {
+        body {
+          flex-direction: column;
+        }
+        aside {
+          flex: 0 0 auto;
+          width: 100%;
+          padding: 18px;
+          border-right: 0;
+          border-bottom: 1px solid rgba(22, 35, 48, 0.1);
+        }
+        main {
+          min-height: 620px;
+          padding: 26px 18px;
+        }
+        .preview-frame {
+          min-height: 42vh;
+          padding: 12px;
+        }
+        canvas,
+        #done video {
+          max-height: 52vh;
+        }
+      }
+      @media (max-width: 480px) {
+        aside {
+          gap: 14px;
+          padding: 14px;
+        }
+        .setup-section {
+          padding: 13px;
+        }
+        .stage-heading {
+          align-items: flex-start;
+        }
+        .preview-label {
+          padding: 7px 9px;
+          font-size: 10px;
+        }
+        .preview-frame {
+          min-height: 32vh;
+        }
+        main {
+          min-height: 500px;
+          padding: 20px 14px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
       }
     </style>
   </head>
   <body>
     <div id="screenPicker" hidden>
       <div class="pickerPanel">
-        <h3>Select a screen</h3>
+        <h2>Select a screen</h2>
         <div id="screenSources"></div>
         <button id="screenCancel">Cancel</button>
       </div>
     </div>
     <aside>
-      <h3>1 · Pair phone</h3>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="2.5" y="5" width="13" height="14" rx="3.5" fill="white" fill-opacity=".25" />
+            <circle cx="15.5" cy="12" r="5.5" fill="white" />
+            <circle cx="15.5" cy="12" r="2.6" fill="#2f5d74" />
+            <path d="M16 4h4a1.5 1.5 0 0 1 1.5 1.5V7H16z" fill="#ff5a52" />
+          </svg>
+        </span>
+        <span>CamShare</span>
+      </div>
+      <div class="sidebar-intro">
+        <h1>Record your screen</h1>
+        <p>Connect your phone to add a camera to your recording.</p>
+      </div>
       <div hidden class="mut">Server: <span id="server"></span></div>
-      <img id="qr" width="220" alt="" />
-      <div id="cam" class="mut">Phone: not connected</div>
-      <button id="screenBtn">Select screen</button><br />
-      <h3>2 · Mode</h3>
-      <label
-        ><input type="radio" name="mode" value="screen" /> Screen Only</label
-      >
-      <label
-        ><input type="radio" name="mode" value="cam" checked /> Screen +
-        Camera</label
-      >
-      <label><input type="checkbox" id="aud" /> Also record PC microphone</label>
-      <div class="mut">Screen audio is captured on Windows. Screen + Camera mode also records the phone microphone when permitted.</div>
-      <h3>3 · PiP size</h3>
-      <div class="pip-size">
-        <input id="size" type="range" min="10" max="50" value="25" />
-        <output id="sizeValue">25%</output>
-      </div>
-      <div class="mut">
-        Drag the camera to move it. Drag its lower-right handle or use this
-        slider to resize.
-      </div>
-      <h3>4 · Save to</h3>
-      <div id="dir" class="mut"></div>
-      <button id="pick">Change folder</button>
+      <section class="setup-section" aria-labelledby="pair-title">
+        <div class="section-title">
+          <span class="step-index">01</span>
+          <h2 id="pair-title">Pair your phone</h2>
+        </div>
+        <img id="qr" width="220" alt="Scan to connect your phone" />
+        <div id="cam" class="mut">Phone: not connected</div>
+      </section>
+      <section class="setup-section" aria-labelledby="screen-title">
+        <div class="section-title">
+          <span class="step-index">02</span>
+          <h2 id="screen-title">Choose what to record</h2>
+        </div>
+        <button id="screenBtn">Select screen</button>
+      </section>
+      <section class="setup-section" aria-labelledby="mode-title">
+        <div class="section-title">
+          <span class="step-index">03</span>
+          <h2 id="mode-title">Recording mode</h2>
+        </div>
+        <label><input type="radio" name="mode" value="screen" /> Screen only</label>
+        <label><input type="radio" name="mode" value="cam" checked /> Screen + camera</label>
+        <label><input type="checkbox" id="aud" /> Also record PC microphone</label>
+        <div class="mut">Screen audio is captured on Windows. Screen + Camera mode also records the phone microphone when permitted.</div>
+      </section>
+      <section class="setup-section" aria-labelledby="pip-title">
+        <div class="section-title">
+          <span class="step-index">04</span>
+          <h2 id="pip-title">Camera size</h2>
+        </div>
+        <div class="pip-size">
+          <input id="size" type="range" min="10" max="50" value="25" />
+          <output id="sizeValue">25%</output>
+        </div>
+        <div class="mut">Drag the camera to move it. Drag its lower-right handle or use this slider to resize.</div>
+      </section>
+      <section class="setup-section" aria-labelledby="save-title">
+        <div class="section-title">
+          <span class="step-index">05</span>
+          <h2 id="save-title">Save recordings to</h2>
+        </div>
+        <div id="dir" class="mut"></div>
+        <button id="pick">Change folder</button>
+      </section>
     </aside>
     <main>
-      <canvas id="cv"></canvas>
-      <div style="margin-top: 12px">
+      <div class="stage-heading">
+        <div>
+          <h2>Recording preview</h2>
+          <p>Arrange your camera overlay before you start.</p>
+        </div>
+        <span class="preview-label">Live preview</span>
+      </div>
+      <div class="preview-frame">
+        <canvas id="cv"></canvas>
+      </div>
+      <div class="record-controls">
         <button id="go" class="rec">● Record</button>
-        <button id="stop" disabled>■ Stop</button> <span id="st">Idle</span>
+        <button id="stop" disabled>■ Stop</button>
+        <span id="st">Idle</span>
       </div>
       <div id="done">
         <video id="pv" controls preload="metadata"></video>
