@@ -42,9 +42,10 @@ adjusted with `MAX_CONNECTIONS` and `MAX_ROOMS`.
 
 Recordings include Windows system audio when available. Screen + Camera mode
 also includes the phone microphone when permission is granted; enable **Also
-record PC microphone** to mix in the desktop microphone. WebM recordings are
-finalized with duration metadata so players can seek through them. Drag the
-PiP's lower-right corner on the preview or use the PiP size slider to resize it.
+record PC microphone** to mix in the desktop microphone. Drag the PiP's
+lower-right corner on the preview or use the PiP size slider to resize it.
+WebM recordings are finalized with the video duration added so players show the
+length and can scrub through the video.
 
 Build installers with `npm run dist`.
 

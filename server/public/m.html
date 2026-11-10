@@ -47,12 +47,23 @@
       let messageQueue = Promise.resolve();
       const send = (o) =>
         ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
+      let retryMs = 2000;
       function connect() {
         ws = new WebSocket(location.origin.replace(/^http/, "ws"));
         ws.onopen = () => {
+          retryMs = 2000;
           send({ t: "join", room, role: "phone" });
         };
-        ws.onclose = () => setTimeout(connect, 2000);
+        ws.onclose = (e) => {
+          // 4001: another phone page took over this session. Reconnecting would
+          // kick it back out and the two pages would fight (and hit the join rate limit).
+          if (e.code === 4001) {
+            $("s").textContent = "Another device took over this camera session.";
+            return;
+          }
+          setTimeout(connect, retryMs + Math.random() * 500);
+          retryMs = Math.min(retryMs * 2, 30000);
+        };
         ws.onmessage = (e) => {
           messageQueue = messageQueue
             .then(async () => {

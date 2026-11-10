@@ -5,7 +5,7 @@ contextBridge.exposeInMainWorld("api", {
   prepare: () => ipc.invoke("rec:prepare"),
   start: (ext) => ipc.invoke("rec:start", ext),
   chunk: (buf) => ipc.invoke("rec:chunk", buf),
-  stop: (durationMs) => ipc.invoke("rec:stop", durationMs),
+  stop: () => ipc.invoke("rec:stop"),
   abort: () => ipc.invoke("rec:abort"),
   showFile: (f) => ipc.invoke("file:show", f),
   fileUrl: (f) => ipc.invoke("file:url", f),

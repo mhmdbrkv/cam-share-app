@@ -23,7 +23,6 @@ let selectingScreen = false;
 let stopReason = "";
 let stopRequested = false;
 let recordMode = "cam";
-let recordingStartedAt = 0;
 let audioContext = null;
 let audioSources = [];
 
@@ -40,6 +39,7 @@ function setState(s, msg) {
   $("stop").disabled = s !== "recording";
   $("screenBtn").disabled =
     selectingScreen || ["preparing", "recording", "finalizing"].includes(s);
+  $("pick").disabled = ["preparing", "recording", "finalizing"].includes(s);
   $("done").style.display = s === "completed" ? "block" : "none";
 }
 
@@ -106,7 +106,7 @@ async function startScreen() {
     }
     setState(
       S.screen ? "idle" : "error",
-      e.name === "AbortError"
+      e.name === "AbortError" || e.name === "NotAllowedError"
         ? "Screen selection cancelled. Select screen to retry."
         : "Screen capture failed: " + e.message,
     );
@@ -255,6 +255,7 @@ function sendSignal(data) {
   if (S.ws && S.ws.readyState === WebSocket.OPEN)
     S.ws.send(JSON.stringify({ t: "sig", data }));
 }
+let sigRetryMs = 2000;
 async function connectSig() {
   if (S.ws) {
     S.ws.onclose = null;
@@ -262,12 +263,18 @@ async function connectSig() {
   }
   const ws = (S.ws = new WebSocket(SERVER_URL.replace(/^http/, "ws")));
   ws.onopen = async () => {
+    sigRetryMs = 2000;
     ws.send(JSON.stringify({ t: "join", room: S.room, role: "desktop" }));
     $("qr").src = await api.qr(`${SERVER_URL}/?s=${S.room}`);
     $("cam").textContent = "Phone: waiting for scan";
   };
   ws.onmessage = (m) => {
-    const d = JSON.parse(m.data);
+    let d;
+    try {
+      d = JSON.parse(m.data);
+    } catch {
+      return;
+    }
     if (d.t === "config" && Array.isArray(d.iceServers)) {
       S.iceServers = d.iceServers;
       return;
@@ -278,7 +285,14 @@ async function connectSig() {
       cv.srcObject = null;
     }
   };
-  ws.onclose = () => setTimeout(connectSig, 2000);
+  ws.onclose = (e) => {
+    if (e.code === 4001) {
+      $("cam").textContent = "Another CamShare window took over this session";
+      return;
+    }
+    setTimeout(connectSig, sigRetryMs + Math.random() * 500);
+    sigRetryMs = Math.min(sigRetryMs * 2, 30000);
+  };
 }
 
 /* ---------- recording controller ---------- */
@@ -369,7 +383,7 @@ async function startRecording() {
       await chain;
       cleanupRecordingStreams();
       try {
-        const r = await api.stop(Date.now() - recordingStartedAt);
+        const r = await api.stop();
         S.file = r.file;
         const partialError = err || r.error;
         const partial = r.partial || !!err;
@@ -379,6 +393,10 @@ async function startRecording() {
         $("pv").load();
         const messages = [];
         if (stopReason) messages.push(`${stopReason}; recording saved`);
+        if (!r.seekable)
+          messages.push(
+            `Saved without seek support: ${r.seekError || "could not build video index"}`,
+          );
         if (partial)
           messages.push(
             `Partial file: ${partialError || "recording was truncated"}`,
@@ -389,7 +407,6 @@ async function startRecording() {
       }
     };
     mr.start(1000);
-    recordingStartedAt = Date.now();
     setState(
       "recording",
       audioInputs.length
