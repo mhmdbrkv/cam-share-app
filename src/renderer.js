@@ -19,7 +19,7 @@ sv.muted = cv.muted = true;
 cv.playsInline = true;
 const canvas = $("cv"),
   ctx = canvas.getContext("2d");
-let selectingScreen = false;
+let screenSelection = null;
 let stopReason = "";
 let stopRequested = false;
 let recordMode = "cam";
@@ -30,6 +30,12 @@ const hasScreen = () =>
   !!S.screen &&
   S.screen.getVideoTracks().some((track) => track.readyState === "live");
 
+function updateScreenButton() {
+  $("screenBtn").disabled =
+    !!screenSelection ||
+    ["preparing", "recording", "finalizing"].includes(S.state);
+}
+
 /* ---------- state machine ---------- */
 function setState(s, msg) {
   S.state = s;
@@ -37,8 +43,7 @@ function setState(s, msg) {
   $("go").disabled =
     !["idle", "completed", "error"].includes(s) || !hasScreen();
   $("stop").disabled = s !== "recording";
-  $("screenBtn").disabled =
-    selectingScreen || ["preparing", "recording", "finalizing"].includes(s);
+  updateScreenButton();
   $("pick").disabled = ["preparing", "recording", "finalizing"].includes(s);
   $("done").style.display = s === "completed" ? "block" : "none";
 }
@@ -46,11 +51,12 @@ function setState(s, msg) {
 /* ---------- screen capture + compositor (shared by preview & recording) ---------- */
 async function startScreen() {
   if (
-    selectingScreen ||
+    screenSelection ||
     ["preparing", "recording", "finalizing"].includes(S.state)
   )
     return;
-  selectingScreen = true;
+  const selection = {};
+  screenSelection = selection;
   setState("selecting", "Select a screen to capture");
   let stream;
   try {
@@ -58,6 +64,10 @@ async function startScreen() {
       video: { frameRate: 30 },
       audio: true,
     });
+    if (screenSelection !== selection) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
     const track = stream.getVideoTracks()[0];
     if (!track) throw new Error("No screen video track was selected");
     const previous = S.screen;
@@ -88,6 +98,7 @@ async function startScreen() {
     setState("idle");
   } catch (e) {
     if (stream) stream.getTracks().forEach((track) => track.stop());
+    if (screenSelection !== selection) return;
     if (sv.srcObject === stream) {
       sv.srcObject = S.screen;
       if (S.screen) {
@@ -111,9 +122,20 @@ async function startScreen() {
         : "Screen capture failed: " + e.message,
     );
   } finally {
-    selectingScreen = false;
-    $("screenBtn").disabled = false;
+    if (screenSelection === selection) {
+      screenSelection = null;
+      updateScreenButton();
+    }
   }
+}
+
+function cancelScreenSelection() {
+  if (!screenSelection) return;
+  screenSelection = null;
+  setState(
+    S.screen ? "idle" : "error",
+    "Screen selection cancelled. Select screen to retry.",
+  );
 }
 const camLive = () => {
   const t = cv.srcObject && cv.srcObject.getVideoTracks()[0];
@@ -477,6 +499,11 @@ api.onScreenSources((sources) => {
         await api.selectScreen(source.id);
       } catch (error) {
         console.error("Could not select screen:", error);
+        try {
+          await api.cancelScreen();
+        } catch (cancelError) {
+          console.error("Could not cancel screen selection:", cancelError);
+        }
       } finally {
         picker.hidden = true;
       }
@@ -487,7 +514,13 @@ api.onScreenSources((sources) => {
 });
 $("screenCancel").onclick = async () => {
   $("screenPicker").hidden = true;
-  await api.cancelScreen();
+  try {
+    await api.cancelScreen();
+  } catch (error) {
+    console.error("Could not cancel screen selection:", error);
+  } finally {
+    cancelScreenSelection();
+  }
 };
 
 (async () => {

@@ -180,21 +180,25 @@ if (!hasInstanceLock) {
     saveDir = path.join(app.getPath("videos"), "CamShare");
     cleanStale(saveDir);
     session.defaultSession.setDisplayMediaRequestHandler(async (request, cb) => {
+      if (pendingCapture) {
+        cb(null);
+        return;
+      }
+      pendingCapture = cb;
+      pendingCaptureAudio = request.audioRequested;
+      captureSources.clear();
       try {
-        if (pendingCapture) {
-          cb({});
-          return;
-        }
         const sources = await desktopCapturer.getSources({
           types: ["screen"],
           thumbnailSize: { width: 320, height: 200 },
         });
+        if (pendingCapture !== cb) return;
         if (!sources.length) {
-          cb({});
+          pendingCapture = null;
+          pendingCaptureAudio = false;
+          cb(null);
           return;
         }
-        pendingCapture = cb;
-        pendingCaptureAudio = request.audioRequested;
         captureSources = new Map(sources.map((source) => [source.id, source]));
         win.webContents.send(
           "screen:sources",
@@ -209,9 +213,9 @@ if (!hasInstanceLock) {
           pendingCapture = null;
           pendingCaptureAudio = false;
           captureSources.clear();
+          cb(null);
         }
         console.error("Could not enumerate screens:", error);
-        cb({});
       }
     });
     win = new BrowserWindow({
@@ -228,7 +232,7 @@ if (!hasInstanceLock) {
     win.loadFile(path.join(__dirname, "index.html"));
     win.on("close", async (e) => {
       if (!rec) {
-        if (pendingCapture) pendingCapture({});
+        if (pendingCapture) pendingCapture(null);
         pendingCapture = null;
         pendingCaptureAudio = false;
         captureSources.clear();
@@ -271,7 +275,7 @@ ipcMain.handle("screen:select", (_, id) => {
   });
 });
 ipcMain.handle("screen:cancel", () => {
-  if (pendingCapture) pendingCapture({});
+  if (pendingCapture) pendingCapture(null);
   pendingCapture = null;
   pendingCaptureAudio = false;
   captureSources.clear();
