@@ -1,64 +1,129 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CamShare Camera</title>
-<style>body{margin:0;font-family:system-ui;background:#111;color:#eee;text-align:center}video{width:100%;max-height:70vh;background:#000}
-button{font-size:1.2rem;padding:.8rem 1.6rem;margin:1rem;border:0;border-radius:10px;background:#4f8cff;color:#fff}</style></head><body>
-<video id="v" autoplay muted playsinline></video><p id="s">Ready</p><button id="b">Connect Camera</button>
-<script>
-const room = new URLSearchParams(location.search).get('s'), $ = (i) => document.getElementById(i);
-let ws, pc, stream, wake, busy = false;
-let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
-let pendingIce = [];
-let messageQueue = Promise.resolve();
-const send = (o) => ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
-function connect() {
-  ws = new WebSocket(location.origin.replace(/^http/, 'ws'));
-  ws.onopen = () => { send({ t: 'join', room, role: 'phone' }); };
-  ws.onclose = () => setTimeout(connect, 2000);
-  ws.onmessage = (e) => {
-    messageQueue = messageQueue.then(async () => {
-      const d = JSON.parse(e.data);
-      if (d.t === 'config' && Array.isArray(d.iceServers)) {
-        iceServers = d.iceServers;
-        return;
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CamShare Camera</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui;
+        background: #111;
+        color: #eee;
+        text-align: center;
       }
-      if (d.t === 'peer' && d.up && stream) offer();
-      if (d.t === 'sig' && pc) {
-        if (d.data.sdp) {
-          await pc.setRemoteDescription(d.data.sdp);
-          for (const candidate of pendingIce)
-            await pc.addIceCandidate(candidate);
+      video {
+        width: 100%;
+        max-height: 70vh;
+        background: #000;
+      }
+      button {
+        font-size: 1.2rem;
+        padding: 0.8rem 1.6rem;
+        margin: 1rem;
+        border: 0;
+        border-radius: 10px;
+        background: #4f8cff;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <video id="v" autoplay muted playsinline></video>
+    <p id="s">Ready</p>
+    <button id="b">Connect Camera</button>
+    <script>
+      const room = new URLSearchParams(location.search).get("s"),
+        $ = (i) => document.getElementById(i);
+      let ws,
+        pc,
+        stream,
+        wake,
+        busy = false;
+      let iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+      let pendingIce = [];
+      let messageQueue = Promise.resolve();
+      const send = (o) =>
+        ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
+      function connect() {
+        ws = new WebSocket(location.origin.replace(/^http/, "ws"));
+        ws.onopen = () => {
+          send({ t: "join", room, role: "phone" });
+        };
+        ws.onclose = () => setTimeout(connect, 2000);
+        ws.onmessage = (e) => {
+          messageQueue = messageQueue
+            .then(async () => {
+              const d = JSON.parse(e.data);
+              if (d.t === "config" && Array.isArray(d.iceServers)) {
+                iceServers = d.iceServers;
+                return;
+              }
+              if (d.t === "peer" && d.up && stream) offer();
+              if (d.t === "sig" && pc) {
+                if (d.data.sdp) {
+                  await pc.setRemoteDescription(d.data.sdp);
+                  for (const candidate of pendingIce)
+                    await pc.addIceCandidate(candidate);
+                  pendingIce = [];
+                } else if (d.data.ice) {
+                  if (pc.remoteDescription)
+                    await pc.addIceCandidate(d.data.ice);
+                  else pendingIce.push(d.data.ice);
+                }
+              }
+            })
+            .catch((error) => {
+              $("s").textContent = "Connection error: " + error.message;
+            });
+        };
+      }
+      async function offer() {
+        if (busy) return;
+        busy = true;
+        try {
+          if (pc) pc.close();
           pendingIce = [];
-        } else if (d.data.ice) {
-          if (pc.remoteDescription) await pc.addIceCandidate(d.data.ice);
-          else pendingIce.push(d.data.ice);
+          pc = new RTCPeerConnection({ iceServers });
+          stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+          pc.onicecandidate = (e) =>
+            e.candidate && send({ t: "sig", data: { ice: e.candidate } });
+          pc.onconnectionstatechange = () =>
+            ($("s").textContent = "Connection: " + pc.connectionState);
+          await pc.setLocalDescription(await pc.createOffer());
+          send({ t: "sig", data: { sdp: pc.localDescription } });
+        } finally {
+          busy = false;
         }
       }
-    }).catch((error) => {
-      $('s').textContent = 'Connection error: ' + error.message;
-    });
-  };
-}
-async function offer() {
-  if (busy) return; busy = true;
-  try {
-    if (pc) pc.close();
-    pendingIce = [];
-    pc = new RTCPeerConnection({ iceServers });
-    stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-    pc.onicecandidate = (e) => e.candidate && send({ t: 'sig', data: { ice: e.candidate } });
-    pc.onconnectionstatechange = () => ($('s').textContent = 'Connection: ' + pc.connectionState);
-    await pc.setLocalDescription(await pc.createOffer());
-    send({ t: 'sig', data: { sdp: pc.localDescription } });
-  } finally { busy = false; }
-}
-$('b').onclick = async () => {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false });
-    $('v').srcObject = stream; $('b').style.display = 'none';
-    try { wake = await navigator.wakeLock.request('screen'); } catch {}
-    document.addEventListener('visibilitychange', async () => { if (!document.hidden) try { wake = await navigator.wakeLock.request('screen'); } catch {} });
-    offer();
-  } catch (e) { $('s').textContent = 'Camera error: ' + e.message; }
-};
-connect();
-</script></body></html>
+      $("b").onclick = async () => {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "environment",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 },
+            },
+            audio: false,
+          });
+          $("v").srcObject = stream;
+          $("b").style.display = "none";
+          try {
+            wake = await navigator.wakeLock.request("screen");
+          } catch {}
+          document.addEventListener("visibilitychange", async () => {
+            if (!document.hidden)
+              try {
+                wake = await navigator.wakeLock.request("screen");
+              } catch {}
+          });
+          offer();
+        } catch (e) {
+          $("s").textContent = "Camera error: " + e.message;
+        }
+      };
+      connect();
+    </script>
+  </body>
+</html>

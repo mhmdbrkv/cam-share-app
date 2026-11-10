@@ -1,3 +1,4 @@
+const SERVER_URL = "https://cam-share-test.onrender.com";
 const $ = (i) => document.getElementById(i);
 const S = {
   state: "idle",
@@ -32,8 +33,7 @@ function setState(s, msg) {
     !["idle", "completed", "error"].includes(s) || !hasScreen();
   $("stop").disabled = s !== "recording";
   $("screenBtn").disabled =
-    selectingScreen ||
-    ["preparing", "recording", "finalizing"].includes(s);
+    selectingScreen || ["preparing", "recording", "finalizing"].includes(s);
   $("done").style.display = s === "completed" ? "block" : "none";
 }
 
@@ -88,7 +88,10 @@ async function startScreen() {
         try {
           await sv.play();
         } catch (resumeError) {
-          console.error("Could not resume the previous screen preview", resumeError);
+          console.error(
+            "Could not resume the previous screen preview",
+            resumeError,
+          );
           const previous = S.screen;
           S.screen = null;
           previous.getTracks().forEach((track) => track.stop());
@@ -187,8 +190,7 @@ function onSig(d) {
           cv.play();
         };
         pc.onicecandidate = (e) =>
-          e.candidate &&
-          sendSignal({ ice: e.candidate });
+          e.candidate && sendSignal({ ice: e.candidate });
         pc.onconnectionstatechange = () => {
           $("cam").textContent = "Phone: " + pc.connectionState;
           if (["failed", "closed"].includes(pc.connectionState))
@@ -212,17 +214,14 @@ function sendSignal(data) {
     S.ws.send(JSON.stringify({ t: "sig", data }));
 }
 async function connectSig() {
-  const base = $("srv").value.trim().replace(/\/$/, "");
-  if (!base) return;
-  localStorage.srv = base;
   if (S.ws) {
     S.ws.onclose = null;
     S.ws.close();
   }
-  const ws = (S.ws = new WebSocket(base.replace(/^http/, "ws")));
+  const ws = (S.ws = new WebSocket(SERVER_URL.replace(/^http/, "ws")));
   ws.onopen = async () => {
     ws.send(JSON.stringify({ t: "join", room: S.room, role: "desktop" }));
-    $("qr").src = await api.qr(`${base}/?s=${S.room}`);
+    $("qr").src = await api.qr(`${SERVER_URL}/?s=${S.room}`);
     $("cam").textContent = "Phone: waiting for scan";
   };
   ws.onmessage = (m) => {
@@ -239,7 +238,6 @@ async function connectSig() {
   };
   ws.onclose = () => setTimeout(connectSig, 2000);
 }
-$("apply").onclick = connectSig;
 
 /* ---------- recording controller ---------- */
 let mr = null,
@@ -358,7 +356,7 @@ $("pick").onclick = async () => ($("dir").textContent = await api.chooseDir());
 
 (async () => {
   $("dir").textContent = (await api.config()).dir;
-  $("srv").value = localStorage.srv || "";
+  $("server").textContent = SERVER_URL;
   connectSig();
   startScreen();
 })();

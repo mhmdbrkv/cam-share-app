@@ -11,8 +11,8 @@
 1. Deploy this repository to a Node.js host with HTTPS (for example Render).
    Set the build command to `npm install` and the start command to
    `npm run server`.
-2. In CamShare, paste the deployed HTTPS URL under **Pair phone**, then click
-   **Apply server**.
+2. CamShare connects to the configured Render server automatically and displays
+   a QR code under **Pair phone**.
 3. Scan the QR code on the phone and tap **Connect Camera**. Keep the phone page
    open while recording.
 

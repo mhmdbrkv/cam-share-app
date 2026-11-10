@@ -31,7 +31,9 @@ function getIceServers() {
           typeof server.credential !== "string"),
     )
   )
-    throw new Error("ICE_SERVERS must be a non-empty array of valid ICE servers");
+    throw new Error(
+      "ICE_SERVERS must be a non-empty array of valid ICE servers",
+    );
   return servers;
 }
 const iceServers = getIceServers();
