@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; img-src 'self' data:"
+    />
+    <title>CamShare POC recorder</title>
+    <style>
+      body {
+        margin: 0;
+        background: #14161a;
+        color: #cfd3dc;
+        font: 12px system-ui, sans-serif;
+      }
+      #cv {
+        width: 100%;
+        display: block;
+        background: #000;
+      }
+      #stats {
+        padding: 6px 8px;
+        white-space: pre;
+        font-family: Consolas, ui-monospace, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="cv"></canvas>
+    <div id="stats">starting…</div>
+    <script src="barcode.js"></script>
+    <script src="recorder.js"></script>
+  </body>
+</html>

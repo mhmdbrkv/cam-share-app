@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    />
+    <title>CamShare POC pattern</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #102030;
+        cursor: none;
+      }
+      #screen {
+        position: fixed;
+        left: 0;
+        top: 0;
+      }
+      #cam {
+        position: fixed; /* left/top/size set from pattern.js in physical pixels */
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="screen"></canvas>
+    <canvas id="cam" width="1280" height="720"></canvas>
+    <script src="barcode.js"></script>
+    <script src="pattern.js"></script>
+  </body>
+</html>

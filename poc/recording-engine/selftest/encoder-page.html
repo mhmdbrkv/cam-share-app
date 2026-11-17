@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
+    <title>CamShare POC encoder self-test</title>
+    <style>
+      body { margin: 0; background: #102030; color: #9fb3c8; font: 12px Consolas, monospace; }
+      canvas { width: 320px; height: 180px; display: block; }
+    </style>
+  </head>
+  <body>
+    <canvas id="out" width="1920" height="1080"></canvas>
+    <div id="s">synthetic canvas · no capture</div>
+    <script src="../barcode.js"></script>
+    <script src="encoder-page.js"></script>
+  </body>
+</html>
