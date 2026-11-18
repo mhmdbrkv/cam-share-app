@@ -72,6 +72,11 @@
         font-size: 0.95rem;
         color: #a5b4fc;
       }
+      #w {
+        margin: 0.5rem 0;
+        font-size: 0.95rem;
+        color: #fbbf24;
+      }
     </style>
   </head>
   <body>
@@ -79,6 +84,9 @@
       <video id="v" autoplay muted playsinline></video>
     </div>
     <div class="controls">
+      <p id="w" style="width: 100%">
+        Waiting for the computer… scan the QR code shown in CamShare.
+      </p>
       <p id="s" style="width: 100%">Ready to connect</p>
       <button id="b">Connect Camera</button>
       <button id="flip" class="secondary" style="display: none">
@@ -105,19 +113,37 @@
       const send = (o) =>
         ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
       let retryMs = 2000;
+      // Waiting message: shown while the server hasn't reported the computer (role "desktop") in
+      // this session, and again when it leaves or this page's own connection to the server drops.
+      // Hidden while the camera is connected directly to the computer (WebRTC needs no server
+      // once connected, so a server-side outage must not ask the user to rescan), and after a
+      // takeover by another device.
+      let computerPresent = false,
+        takenOver = false;
+      function updateWaiting() {
+        const streaming = !!pc && pc.connectionState === "connected";
+        $("w").hidden = takenOver || computerPresent || streaming;
+      }
+      function setComputerPresent(present) {
+        computerPresent = present;
+        updateWaiting();
+      }
 
       function connect() {
-        ws = new WebSocket(location.origin.replace(/^http/, "ws"));
+        const socket = (ws = new WebSocket(location.origin.replace(/^http/, "ws")));
         ws.onopen = () => {
           retryMs = 2000;
           send({ t: "join", room, role: "phone" });
         };
         ws.onclose = (e) => {
           if (e.code === 4001) {
+            takenOver = true; // the takeover message below replaces the waiting message
+            updateWaiting();
             $("s").textContent =
               "Another device took over this camera session.";
             return;
           }
+          setComputerPresent(false); // unknown until the server reports it again
           setTimeout(connect, retryMs + Math.random() * 500);
           retryMs = Math.min(retryMs * 2, 30000);
         };
@@ -129,6 +155,15 @@
                 iceServers = d.iceServers;
                 return;
               }
+              // Presence from a socket that has since closed is stale: onclose already reset it,
+              // and messages queued behind async work here can run after onclose.
+              if (
+                d.t === "peer" &&
+                d.role === "desktop" &&
+                socket === ws &&
+                socket.readyState === WebSocket.OPEN
+              )
+                setComputerPresent(!!d.up);
               if (d.t === "peer" && d.up && stream) offer();
               if (d.t === "sig" && pc) {
                 if (d.data.sdp) {
@@ -200,6 +235,7 @@
             if (pc === currentPc)
               $("s").textContent =
                 "Camera streaming (" + currentPc.connectionState + ")";
+            updateWaiting();
           };
           await currentPc.setLocalDescription(await currentPc.createOffer());
           await applySenderOptimizations(currentPc);
@@ -222,19 +258,8 @@
           height: { ideal: 720 },
           frameRate: { ideal: 30, min: 20 },
         };
-        const audio = {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        };
-        try {
-          return await navigator.mediaDevices.getUserMedia({ video, audio });
-        } catch {
-          return await navigator.mediaDevices.getUserMedia({
-            video,
-            audio: false,
-          });
-        }
+        // V1: camera video only; the phone microphone is never requested or sent.
+        return await navigator.mediaDevices.getUserMedia({ video, audio: false });
       }
 
       $("b").onclick = async () => {
