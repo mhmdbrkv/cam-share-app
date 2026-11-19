@@ -129,14 +129,24 @@
       }
 
       /* Camera preview */
+      /* The container is only the available space. The visible box is .frame: it fills the space
+         until video arrives, then the UI script sizes it to the camera picture's own aspect ratio
+         (decision 2026-11-19), so the whole picture shows with no black bars and no cropping. */
       .preview-container {
         position: relative;
         flex: 1;
         min-height: 120px;
+        margin: 0 12px;
+      }
+      .frame {
+        position: absolute;
+        inset: 0;
+        margin: auto;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 12px;
+        max-width: 100%;
+        max-height: 100%;
         overflow: hidden;
         border-radius: 22px;
         background:
@@ -147,6 +157,11 @@
           ),
           #070919;
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+      .has-video .frame {
+        border-radius: 16px;
+        background: #000;
+        box-shadow: none;
       }
       video {
         position: absolute;
@@ -432,12 +447,14 @@
       <span class="pill" role="status" aria-live="polite"><i aria-hidden="true"></i><span id="ui-state">Waiting for computer</span></span>
     </header>
     <div class="preview-container">
+      <div class="frame" id="ui-frame">
       <span class="live-tag" aria-hidden="true"><i></i>LIVE</span>
       <div class="placeholder" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z" /><circle cx="12" cy="12.8" r="3.8" /></svg>
         <span id="ui-hint">Your camera preview will appear here.</span>
       </div>
       <video id="v" autoplay muted playsinline></video>
+      </div>
     </div>
     <div class="controls">
       <ol class="steps" aria-label="Pairing progress">
@@ -755,16 +772,20 @@
           if (/^(Camera access error|Connection error|Camera stopped)/.test(text))
             return "error";
           if (/^(Starting|Switching) camera/.test(text)) return "starting";
-          if (!cameraOn) return w.hidden ? "ready" : "waiting";
-          const m = text.match(/\((\w+)\)/);
-          if (m) {
-            if (m[1] === "connected") return "live";
-            if (m[1] === "disconnected") return w.hidden ? "interrupted" : "waiting";
-            if (m[1] === "failed" || m[1] === "closed") return "error";
-            return w.hidden ? "connecting" : "waiting";
-          }
-          if (/^Camera streaming|^Could not switch/.test(text)) return "live";
-          return w.hidden ? "connecting" : "waiting";
+          // The waiting message (#w) is shown only when the computer is gone and the camera link
+          // isn't connected, so it always wins. (Fix 2026-11-19: after a Flip, #s reads plain
+          // "Camera streaming", which overwrote "(disconnected)" and made the pill say Streaming.)
+          if (!w.hidden) return "waiting";
+          if (!cameraOn) return "ready";
+          // Prefer the live connection state over the status text, which a Flip can leave stale.
+          // Read only: `pc` is the page script's own peer connection.
+          const live = typeof pc !== "undefined" && pc ? pc.connectionState : null;
+          const m = text.match(/\((\w+)\)/),
+            conn = live || (m && m[1]) || (/^Camera streaming/.test(text) ? "connected" : null);
+          if (conn === "connected") return "live";
+          if (conn === "disconnected") return "interrupted";
+          if (conn === "failed" || conn === "closed") return "error";
+          return "connecting";
         }
         function render() {
           const state = derive();
@@ -783,7 +804,33 @@
             "has-video",
             !!v.srcObject && v.readyState >= 2,
           );
+          fitFrame();
         }
+        // Size the visible frame to the camera picture's own aspect ratio, as large as fits the
+        // available space. The video keeps object-fit: contain, so nothing is ever cropped.
+        const space = document.querySelector(".preview-container"),
+          frame = el("ui-frame");
+        function fitFrame() {
+          const vw = v.videoWidth,
+            vh = v.videoHeight;
+          if (!document.body.classList.contains("has-video") || !vw || !vh) {
+            frame.style.width = frame.style.height = "";
+            return;
+          }
+          const box = space.getBoundingClientRect(),
+            ratio = vw / vh;
+          let w = box.width,
+            h = w / ratio;
+          if (h > box.height) {
+            h = box.height;
+            w = h * ratio;
+          }
+          frame.style.width = Math.floor(w) + "px";
+          frame.style.height = Math.floor(h) + "px";
+        }
+        v.addEventListener("resize", fitFrame); // picture size changed (flip, rotation)
+        if (window.ResizeObserver) new ResizeObserver(fitFrame).observe(space);
+        window.addEventListener("resize", fitFrame);
         new MutationObserver(render).observe(s, {
           childList: true,
           characterData: true,
