@@ -45,6 +45,22 @@ resizable Picture-in-Picture (PiP) overlay.
 - If the phone camera disconnects during recording, recording continues with
   screen only. When the camera reconnects, it returns with its previous PiP
   position and size.
+- **Decision 2026-11-19 (PiP shape):** the desktop PiP is always a 16:9
+  landscape rectangle. The phone frame is centre-cropped to 16:9 on the
+  desktop only, identically in the app preview and the final recording.
+  - The phone sends its full, uncropped camera frame. The crop is not
+    applied to the transmitted stream.
+  - The phone camera page shows the full camera frame with **no** crop, no
+    16:9 framing and no mirroring. The phone preview is not meant to match
+    the recorded framing.
+- **Decision 2026-11-19 (PiP look and wheel):** the camera has rounded
+  corners and a soft shadow and **no border**, in the preview and the
+  recording (this settles open question Q4). The mouse wheel resizes the PiP
+  only while the pointer is over the visible camera.
+- **Decision 2026-11-19 (PiP size and handle):** the PiP can be resized from
+  10 % to 100 % of the screen width (it never gets taller than the screen).
+  No resize handle is drawn on the camera; the corner still resizes, and the
+  pointer cursor shows it.
 
 ### 2.4 Quality
 

@@ -56,6 +56,7 @@ peer connection (direct, or via a TURN relay if one is configured).
 │   ├── preload.js        # contextBridge → window.api
 │   ├── renderer.js       # UI logic, compositor, recorder, WebRTC
 │   ├── index.html        # desktop UI + CSP
+│   ├── ui.js             # presentation only: guided steps, headings, recording timer
 │   └── assets/icon.png   # window icon
 └── server/               # NOT packaged into the installer
     ├── server.js         # HTTP + WebSocket signaling server
@@ -77,6 +78,11 @@ linters, formatters, or CI configuration in the repository.
 - The renderer has no Node access; it talks to the main process only through
   the `window.api` object exposed in `src/preload.js` (see §3.5).
 - Single-instance lock: a second launch focuses the existing window.
+- No application menu (`Menu.setApplicationMenu(null)`, decision 2026-11-19).
+  This removes the default File/Edit/View/Window/Help bar and its shortcuts,
+  including Ctrl+R (reload, which would lose a recording in progress). In
+  development only (`!app.isPackaged`, i.e. `npm start`), Ctrl+Shift+I still
+  toggles DevTools through a `before-input-event` handler.
 - Chromium feature `CalculateNativeWinOcclusion` is disabled so the compositor
   keeps rendering when the window is covered.
 - `backgroundThrottling: false` keeps `document.hidden` **false** while the
@@ -109,7 +115,9 @@ characters). It is generated fresh on every app launch and is not persisted.
   handler grants `{ video: source }` only. System audio (Windows loopback) is
   never captured.
 - Cancelling the picker, or the capture track ending, returns the UI to an
-  error/idle state from which **Select screen** can be retried.
+  error/idle state from which the screen can be chosen again (the
+  **Select** / **Change** button in step 2 "Choose a screen", which stays
+  visible after a screen is chosen).
 - If the screen track ends during recording, the recording is stopped and
   saved.
 
@@ -118,6 +126,11 @@ characters). It is generated fresh on every app launch and is not persisted.
 **Compositor** (`renderFrame` in `renderer.js`):
 - Canvas size = screen size scaled to at most 1080 px tall (never upscaled),
   dimensions rounded down to even numbers.
+- The camera PiP is always 16:9 (decision 2026-11-19): `pipRect` sets its
+  height to width × 9/16, and `pipCrop` centre-crops the phone frame to 16:9
+  before drawing it. The crop happens only here, on the desktop. The phone
+  sends its full frame, and the phone page previews the full frame with no
+  crop or mirroring (product decision, V1-SPECIFICATION.md §2.3).
 - Driven by `requestAnimationFrame` with a phase-keeping 30 fps schedule
   (changed 2026-11-17):
   - each frame is drawn on the refresh nearest its 33.3 ms deadline, so the
@@ -135,11 +148,20 @@ characters). It is generated fresh on every app launch and is not persisted.
 - While recording, every drawn frame is pushed to the recorder explicitly with
   `requestFrame()` (see Recording).
 - In **Screen + camera** mode, when the phone track is live and the peer
-  connection is `connected`, the camera is drawn at the PiP rectangle with a
-  3 px white border. Front-camera (`facingMode: "user"`) frames are mirrored.
+  connection is `connected`, the camera is drawn at the PiP rectangle,
+  clipped to rounded corners (radius 3 % of its width, at least 6 px), with
+  no border and a soft shadow made of three translucent layers (decision
+  2026-11-19; before, it had a square 3 px white border). Front-camera
+  (`facingMode: "user"`) frames are mirrored.
 - PiP position/size are stored as fractions of the canvas. Size is clamped to
-  10–50 % of canvas width (slider, mouse wheel, or dragging the lower-right
-  handle). The resize handle is drawn only in preview, never while recording.
+  10–100 % of canvas width (decision 2026-11-19; was 10–50 %). `pipRect` also
+  caps the height at the canvas height, which matters only for screens wider
+  than 16:9. Resize with the slider, the mouse wheel **while the pointer is
+  over the visible camera** (decision 2026-11-19; before, the wheel worked
+  anywhere over the preview), or by dragging the lower-right 24 px corner.
+- **No resize handle is drawn** (decision 2026-11-19; before, it was a white
+  square, preview only). The pointer cursor shows what will happen instead:
+  `nwse-resize` on the corner, `move` elsewhere on the camera.
 
 **Recording** (`startRecording`):
 - `canvas.captureStream(0)` plus `requestFrame()` after each draw (changed

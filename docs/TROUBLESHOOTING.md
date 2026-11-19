@@ -24,7 +24,7 @@ noted otherwise.
 
 | Symptom | Cause / action |
 |---|---|
-| "Screen selection cancelled. Select screen to retry." | Picker was cancelled. Click **Select screen**. |
+| "Screen selection cancelled. Select screen to retry." | Picker was cancelled. Click **Select** (or **Change**) in step 2, "Choose a screen". |
 | "Screen capture ended. Select a screen to continue." | The capture track ended (display disconnected, etc.). Select a screen again. |
 | "Screen capture ended; saving recording…" | The track ended during recording; the recording is saved automatically. |
 | Only whole screens are offered, not windows | By design in the current code (`types: ["screen"]`). |

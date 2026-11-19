@@ -6,6 +6,7 @@ const {
   shell,
   desktopCapturer,
   session,
+  Menu,
 } = require("electron");
 const path = require("path"),
   fs = require("fs"),
@@ -92,6 +93,9 @@ if (!hasInstanceLock) {
     win.focus();
   });
   app.whenReady().then(() => {
+    // No menu bar (decision 2026-11-19). Electron's default File/Edit/View/Window/Help menu also
+    // brought shortcuts such as Ctrl+R (reload, which would lose a recording in progress).
+    Menu.setApplicationMenu(null);
     saveDir = path.join(app.getPath("videos"), "CamShare");
     cleanStale(saveDir);
     session.defaultSession.setDisplayMediaRequestHandler(async (request, cb) => {
@@ -143,6 +147,18 @@ if (!hasInstanceLock) {
       },
     });
     win.loadFile(path.join(__dirname, "index.html"));
+    // Development only (npm start, never the installed build): keep Ctrl+Shift+I for DevTools,
+    // which the removed menu used to provide.
+    if (!app.isPackaged)
+      win.webContents.on("before-input-event", (_event, input) => {
+        if (
+          input.type === "keyDown" &&
+          input.control &&
+          input.shift &&
+          input.key.toLowerCase() === "i"
+        )
+          win.webContents.toggleDevTools();
+      });
     win.on("close", async (e) => {
       if (!rec) {
         if (pendingCapture) pendingCapture(null);

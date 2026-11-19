@@ -39,7 +39,7 @@ By default the app connects to the production server at
    Set the build command to `npm install` and the start command to
    `npm run server`. (HTTPS is required for phone camera access.)
 2. CamShare connects to the configured Render server automatically and displays
-   a QR code under **Pair your phone**.
+   a QR code under **Connect your phone** (step 1 of the setup panel).
 3. Scan the QR code on the phone and tap **Connect Camera**. Keep the phone page
    open while recording. **Flip Camera** switches between the front and back
    cameras.
@@ -52,7 +52,11 @@ while Render wakes it up (the service runs on Render's Free plan).
 - **Recording modes:** *Screen only* or *Screen + camera*.
 - **PiP:** drag the camera on the preview to move it. Resize it by dragging
   its lower-right corner, with the **Camera size** slider, or with the mouse
-  wheel (10–50 % of the width).
+  wheel while the pointer is over the camera (10–100 % of the width). The
+  camera is a 16:9 rectangle with rounded corners and no border. No handle
+  is drawn: the pointer changes to resize arrows on the corner.
+- **Screen:** use **Change** in step 2 ("Choose a screen") to switch to
+  another screen before recording.
 - **Audio:** off by default, so recordings are video only.
   - Check **Record PC microphone** to record your Windows default
     microphone. That is the only audio CamShare records.
