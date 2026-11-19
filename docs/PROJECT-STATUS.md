@@ -1,6 +1,6 @@
 # Project Status
 
-_Last reviewed: 2026-11-19, against the `v1-integration` branch: `origin/main` `c52ecfe` (phone pairing, camera-only and flip fixes) + the recording fixes (`0c380b8`) + A1 audio (`68719cb`). The desktop `src/` files are byte-identical to the ones used in the 2026-11-18 audio validation; the 2026-11-17/18 recording tests ran the same video pipeline before the A1 audio change (A1 changed audio only). `server/public/m.html` is the version deployed on Render (`c52ecfe`). Version in `package.json`: `0.1.0`. Electron: `^33.0.0` (33.4.11 installed)._
+_Last reviewed: 2026-11-19, against the `v1-integration` branch: `origin/main` `c52ecfe` (phone pairing, camera-only and flip fixes) + the recording fixes (`0c380b8`) + A1 audio (`68719cb`). The desktop `src/` files are byte-identical to the ones used in the 2026-11-18 audio validation; the 2026-11-17/18 recording tests ran the same video pipeline before the A1 audio change (A1 changed audio only). `server/public/m.html` is the version deployed on Render (`c52ecfe`). Version in `package.json`: `1.0.0` (set 2026-11-19 for the Windows V1 release build). Electron: `^33.0.0` (33.4.11 installed)._
 
 This file keeps three things separate:
 
