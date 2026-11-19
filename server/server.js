@@ -37,7 +37,9 @@ function getIceServers() {
           typeof server.credential !== "string"),
     )
   )
-    throw new Error("ICE_SERVERS must be a non-empty array of valid ICE servers");
+    throw new Error(
+      "ICE_SERVERS must be a non-empty array of valid ICE servers",
+    );
   if (
     !process.env.TURN_SECRET &&
     servers.some(
@@ -67,7 +69,9 @@ const joinAttempts = new Map();
 setInterval(() => {
   const now = Date.now();
   for (const [ip, timestamps] of joinAttempts) {
-    const recent = timestamps.filter((timestamp) => now - timestamp < joinWindowMs);
+    const recent = timestamps.filter(
+      (timestamp) => now - timestamp < joinWindowMs,
+    );
     if (recent.length) joinAttempts.set(ip, recent);
     else joinAttempts.delete(ip);
   }
@@ -237,7 +241,9 @@ wss.on("connection", (ws, req) => {
       ws.role = m.role;
       if (!rooms.has(ws.room)) rooms.set(ws.room, room);
       room.add(ws);
-      ws.send(JSON.stringify({ t: "config", iceServers: getClientIceServers() }));
+      ws.send(
+        JSON.stringify({ t: "config", iceServers: getClientIceServers() }),
+      );
       others(ws).forEach((client) => {
         client.send(JSON.stringify({ t: "peer", up: true, role: ws.role }));
         ws.send(JSON.stringify({ t: "peer", up: true, role: client.role }));

@@ -20,7 +20,6 @@ let win,
   saveDir,
   lastSavedFile = null,
   pendingCapture = null,
-  pendingCaptureAudio = false,
   captureSources = new Map();
 const p2 = (n) => String(n).padStart(2, "0");
 function stamp() {
@@ -185,7 +184,6 @@ if (!hasInstanceLock) {
         return;
       }
       pendingCapture = cb;
-      pendingCaptureAudio = request.audioRequested;
       captureSources.clear();
       try {
         const sources = await desktopCapturer.getSources({
@@ -195,7 +193,6 @@ if (!hasInstanceLock) {
         if (pendingCapture !== cb) return;
         if (!sources.length) {
           pendingCapture = null;
-          pendingCaptureAudio = false;
           cb(null);
           return;
         }
@@ -211,7 +208,6 @@ if (!hasInstanceLock) {
       } catch (error) {
         if (pendingCapture === cb) {
           pendingCapture = null;
-          pendingCaptureAudio = false;
           captureSources.clear();
           cb(null);
         }
@@ -235,7 +231,6 @@ if (!hasInstanceLock) {
       if (!rec) {
         if (pendingCapture) pendingCapture(null);
         pendingCapture = null;
-        pendingCaptureAudio = false;
         captureSources.clear();
         return;
       }
@@ -267,21 +262,13 @@ ipcMain.handle("screen:select", (_, id) => {
   if (!pendingCapture || !source)
     throw new Error("Screen selection is no longer available");
   const cb = pendingCapture;
-  const captureAudio = pendingCaptureAudio;
   pendingCapture = null;
-  pendingCaptureAudio = false;
   captureSources.clear();
-  cb({
-    video: source,
-    ...(captureAudio && process.platform === "win32"
-      ? { audio: "loopback" }
-      : {}),
-  });
+  cb({ video: source }); // V1: video only; system audio (loopback) is never granted
 });
 ipcMain.handle("screen:cancel", () => {
   if (pendingCapture) pendingCapture(null);
   pendingCapture = null;
-  pendingCaptureAudio = false;
   captureSources.clear();
 });
 ipcMain.handle("dir:choose", async () => {

@@ -66,7 +66,7 @@ async function startScreen() {
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: 30 },
-      audio: true,
+      audio: false, // V1: system audio is never recorded
     });
     if (screenSelection !== selection) {
       stream.getTracks().forEach((track) => track.stop());
@@ -201,23 +201,53 @@ function renderFrame() {
       ctx.strokeRect(r.x + r.w - 18, r.y + r.h - 18, 18, 18);
     }
   }
+  // While recording, hand exactly this drawn frame to the recorder (canvas.captureStream(0)).
+  if (recordFrameTrack) recordFrameTrack.requestFrame();
 }
 
-// requestAnimationFrame loop eliminates timer jitter & dropped frames when window is visible
-let lastFrameTime = 0;
+// 30 fps schedule on requestAnimationFrame. Each frame is drawn on the display refresh nearest
+// its 33.3 ms deadline, and the deadline keeps its phase, so the average is 30 fps on any refresh
+// rate (a fixed minimum interval drifts down to e.g. 28.8 fps at 144 Hz or 25 fps at 75 Hz).
+// Frames are never drawn less than 25 ms apart: after a late refresh the schedule skips ahead
+// instead of catching up with closely spaced frames.
 const frameInterval = 1000 / 30; // 30 fps cadence
+let nextFrameAt = null,
+  lastFrameAt = -Infinity,
+  lastTickAt = null,
+  lastTickGap = 0, // time between the two most recent rAF ticks
+  refreshPeriod = 1000 / 60; // running estimate of the display refresh period
 function loop(now) {
-  if (now - lastFrameTime >= frameInterval - 2) {
-    lastFrameTime = now;
+  if (lastTickAt !== null) {
+    lastTickGap = now - lastTickAt;
+    refreshPeriod += 0.05 * (Math.min(50, Math.max(2, lastTickGap)) - refreshPeriod);
+  }
+  lastTickAt = now;
+  if (nextFrameAt === null) nextFrameAt = now;
+  if (
+    now >= nextFrameAt - refreshPeriod / 2 &&
+    now - lastFrameAt >= 0.75 * frameInterval
+  ) {
+    lastFrameAt = now;
     renderFrame();
+    nextFrameAt += frameInterval;
+    if (nextFrameAt < now + 0.75 * frameInterval - refreshPeriod / 2)
+      nextFrameAt = now + frameInterval;
   }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
-// Background fallback: ensure frames continue flowing into recorder when window is minimized
+// Fallback while recording: when requestAnimationFrame stalls (measured: a minimized window keeps
+// document.hidden false while rAF slows to about one tick per second), draw from this timer so the
+// recording stays at 30 fps. It draws only while rAF is stalled (no tick for > 50 ms, or ticks
+// > 50 ms apart, so a lone tick of a slowed rAF doesn't pause it), never within 25 ms of the
+// previous frame, and adds no work while the window is visible.
 setInterval(() => {
-  if (document.hidden && mr) {
+  const now = performance.now();
+  const rafStalled = lastTickAt === null || now - lastTickAt > 50 || lastTickGap > 50;
+  if (mr && rafStalled && now - lastFrameAt >= 0.75 * frameInterval) {
+    lastFrameAt = now;
+    nextFrameAt = now + frameInterval;
     renderFrame();
   }
 }, frameInterval);
@@ -382,10 +412,52 @@ async function connectSig() {
 }
 
 /* ---------- recording controller ---------- */
+// The first MediaRecorder in a renderer process takes ~0.7-2.3 s to start; until its `start`
+// event, frames after the first one are lost. A short throwaway recording of a tiny canvas,
+// once per session, does that initialisation up front (later recorders start in ~0.2 s).
+// It records nothing from the screen, camera or microphone, and its data is discarded.
+let recorderWarmUp = null;
+function warmUpRecorder(mimeType) {
+  if (!recorderWarmUp)
+    recorderWarmUp = (async () => {
+      const c = document.createElement("canvas");
+      c.width = 64;
+      c.height = 36;
+      const g = c.getContext("2d");
+      const stream = c.captureStream(0);
+      const track = stream.getVideoTracks()[0];
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 250e3,
+      });
+      let n = 0;
+      const timer = setInterval(() => {
+        g.fillStyle = n++ % 2 ? "#000" : "#fff";
+        g.fillRect(0, 0, c.width, c.height);
+        track.requestFrame();
+      }, frameInterval);
+      try {
+        await new Promise((resolve, reject) => {
+          recorder.onstart = resolve;
+          recorder.onerror = (e) => reject(e.error || new Error("warm-up failed"));
+          setTimeout(resolve, 4000); // never block a recording for long
+          recorder.start(250);
+        });
+      } finally {
+        clearInterval(timer);
+        if (recorder.state !== "inactive") recorder.stop();
+        stream.getTracks().forEach((t) => t.stop());
+      }
+    })().catch((error) => console.warn("Recorder warm-up failed:", error));
+  return recorderWarmUp;
+}
+
 let mr = null,
   mic = null,
-  outStream = null;
+  outStream = null,
+  recordFrameTrack = null; // canvas video track fed explicitly by renderFrame()
 async function startRecording() {
+  const wantMic = $("aud").checked; // read once, before any await
   setState("preparing");
   stopReason = "";
   stopRequested = false;
@@ -400,8 +472,11 @@ async function startRecording() {
       !confirm(`Only ${(p.free / 1e9).toFixed(1)} GB free. Continue anyway?`)
     )
       return setState("idle");
-    outStream = canvas.captureStream(30);
-    if ($("aud").checked) {
+    // Frame rate 0: frames are emitted only by requestFrame() after each draw (see renderFrame).
+    // captureStream(30)'s own rate limit dropped frames that followed a short draw interval.
+    outStream = canvas.captureStream(0);
+    recordFrameTrack = outStream.getVideoTracks()[0];
+    if (wantMic) {
       try {
         mic = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch {
@@ -411,27 +486,17 @@ async function startRecording() {
         }
       }
     }
-    const audioInputs = [];
-    const addAudioInput = (stream) => {
-      if (stream && stream.getAudioTracks().length) audioInputs.push(stream);
-    };
-    addAudioInput(S.screen);
-    // Prevent echo: if PC mic is enabled, prioritize PC mic directly and skip phone mic
-    if ($("aud").checked && mic) {
-      addAudioInput(mic);
-    } else if (mode === "cam") {
-      addAudioInput(cv.srcObject);
-    }
-    if (audioInputs.length) {
+    // V1 audio: only the PC's default microphone, and only when Audio is on. System audio and
+    // the phone microphone are never recorded. With no mic track, the recording is video only.
+    const micTrack = wantMic && mic ? mic.getAudioTracks()[0] || null : null;
+    if (micTrack) {
       audioContext = new AudioContext();
       const destination = audioContext.createMediaStreamDestination();
-      for (const stream of audioInputs) {
-        const source = audioContext.createMediaStreamSource(
-          new MediaStream(stream.getAudioTracks()),
-        );
-        source.connect(destination);
-        audioSources.push(source);
-      }
+      const source = audioContext.createMediaStreamSource(
+        new MediaStream([micTrack]),
+      );
+      source.connect(destination);
+      audioSources.push(source);
       outStream.addTrack(destination.stream.getAudioTracks()[0]);
       await audioContext.resume();
     }
@@ -445,6 +510,9 @@ async function startRecording() {
       "video/webm",
     ].find((m) => MediaRecorder.isTypeSupported(m));
     if (!mime) throw new Error("No supported recording format");
+    setState("preparing", "Preparing recorder…");
+    await warmUpRecorder(mime); // one-off per session; resolves immediately afterwards
+    if (!hasScreen()) throw new Error("Screen capture ended. Select a screen to continue.");
     await api.start(mime.includes("mp4") ? "mp4" : "webm");
     mr = new MediaRecorder(outStream, {
       mimeType: mime,
@@ -499,13 +567,18 @@ async function startRecording() {
         setState("error", "Save failed: " + e.message);
       }
     };
+    // Recording is only reported (and Stop enabled) once the recorder has actually started.
+    mr.onstart = () => {
+      if (recorder !== mr) return;
+      setState(
+        "recording",
+        wantMic && !micTrack
+          ? "Recording… (no audio: microphone unavailable)"
+          : "Recording…",
+      );
+    };
     mr.start(1000);
-    setState(
-      "recording",
-      audioInputs.length
-        ? "Recording…"
-        : "Recording… (no audio source available)",
-    );
+    setState("preparing", "Starting recorder…");
     if (stopRequested && mr.state !== "inactive") mr.stop();
   } catch (e) {
     cleanupRecordingStreams();
@@ -528,6 +601,7 @@ function cleanupRecordingStreams() {
     );
   audioContext = null;
   outStream = null;
+  recordFrameTrack = null;
   mic = null;
 }
 $("go").onclick = startRecording;
