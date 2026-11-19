@@ -284,13 +284,39 @@
         }
       };
 
+      // Open the other camera while the current one keeps streaming (no gap where the phone
+      // allows it). Many Android phones allow only one open camera and fail with NotReadableError
+      // ("Could not start video source"): then stop the current camera and retry, and if that
+      // fails too, reopen the previous camera so streaming recovers.
+      async function openOtherCamera(oldStream, nextMode, previousMode) {
+        try {
+          return { stream: await getMediaStream(nextMode), switched: true };
+        } catch (err) {
+          if (err.name !== "NotReadableError" || !oldStream) throw err; // old camera untouched
+          oldStream.getTracks().forEach((t) => t.stop());
+          try {
+            return { stream: await getMediaStream(nextMode), switched: true };
+          } catch (retryError) {
+            try {
+              const recovered = await getMediaStream(previousMode);
+              return { stream: recovered, switched: false, error: retryError };
+            } catch {
+              retryError.cameraStopped = true;
+              throw retryError;
+            }
+          }
+        }
+      }
+
       $("flip").onclick = async () => {
         try {
-          facingMode = facingMode === "user" ? "environment" : "user";
+          const previousMode = facingMode;
+          const nextMode = facingMode === "user" ? "environment" : "user";
           $("s").textContent = "Switching camera…";
-          const newStream = await getMediaStream(facingMode);
           const oldStream = stream;
-          stream = newStream;
+          const result = await openOtherCamera(oldStream, nextMode, previousMode);
+          if (result.switched) facingMode = nextMode;
+          stream = result.stream;
           $("v").srcObject = stream;
           if (oldStream) oldStream.getTracks().forEach((t) => t.stop());
           if (pc) {
@@ -305,9 +331,13 @@
               offer();
             }
           }
-          $("s").textContent = "Camera streaming";
+          $("s").textContent = result.switched
+            ? "Camera streaming"
+            : "Could not switch camera: " + result.error.message;
         } catch (err) {
-          $("s").textContent = "Could not switch camera: " + err.message;
+          $("s").textContent = err.cameraStopped
+            ? "Camera stopped: " + err.message + ". Reload this page to reconnect."
+            : "Could not switch camera: " + err.message;
         }
       };
 
