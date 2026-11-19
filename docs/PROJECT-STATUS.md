@@ -50,7 +50,7 @@ build has **not** been tested since these changes.
 | Item | Status | Notes |
 |---|---|---|
 | Windows desktop app | 🟢 | The only configured platform (`build.win`, NSIS). An installer was built earlier (`dist/CamShare-Setup.exe`, v0.1.0); it **predates** the recording, audio and phone fixes and must be rebuilt. |
-| Windows installer build (`npm run dist`) | 🟢 | Build output exists in `dist/`; not re-run in this review. |
+| Windows installer build (`npm run dist`) | ✅ | Built 2026-11-19 as **1.0.0** from `main` `4309454` (clean `npm ci`, electron-builder 25.1.8, Electron 33.4.11): `CamShare-Setup.exe`, 82.3 MB, **unsigned**; packaged app files verified identical to the commit. Must be rebuilt after the seek-index fix. |
 | macOS desktop app | ❌ | No `mac` build target. No macOS permission handling (`systemPreferences` isn't used). **Never tested.** |
 | Linux | ❌ | Not targeted. |
 | Code signing | ❌ | Not configured for any platform. |
@@ -80,7 +80,7 @@ build has **not** been tested since these changes.
 | Windows system audio (loopback) | ❌ by design | Never requested or granted (V1 decision 2026-11-18). |
 | Phone microphone | ❌ by design | Never recorded by the desktop. The phone page requests camera only (`server/public/m.html`), deployed via PR #1 (merge `c72b1ce`, Render auto-deploy live 2026-11-18 10:11 PM; live page verified identical to the merged file). ✅ Real phone 2026-11-18: no microphone prompt. |
 | PC microphone (optional checkbox, default off) | ✅ | Windows default device only. If unavailable: confirm "continue without audio" (video only) or cancel. No device choice (deferred, decision 2026-11-18). |
-| WebM duration fix (seekable files) | ✅ | Custom EBML patcher. Measured on the 2026-11-17/18 app recordings: duration present (within ~0.3 s of the video length), seek checks 3/3, 0 decode errors. |
+| WebM finalization: duration + seek index (seekable files) | ✅ | `src/webm-index.js`: adds `Duration`, a `SeekHead`, known `Segment`/`Cluster` sizes and a `Cues` index (one per video keyframe); media copied unchanged. **Why:** the earlier duration-only patch passed ffmpeg seek checks, but in the installed-build test (2026-11-19) **Windows Media Player could not seek** a 30-min recording (slider didn't move): the files had no `Cues`. **Offline test 2026-11-19** on 4 existing recordings (15.6 s – 29:39): identical packet lists and durations, every SeekHead entry and cue lands on the right element, full decode 0 errors (30-min file), seeks at 5/15/25/29.5 min OK; indexing the 30-min file took 0.25 s. **Windows Media Player** (user check): slider works on the indexed 30-min copy. **App run 2026-11-19** (development build from the fix branch, 46 s Screen + camera recording): file has SeekHead, Info, Tracks, 14 known-size Clusters and Cues; 30.0 fps, 0 decode errors; Windows Media Player seeking works (user check). Installed build not yet rebuilt with the fix. |
 | Temp file → final name after the stream closes; never overwrite | 🟢 | Hard link or `COPYFILE_EXCL` copy, not `rename`. |
 | Best-effort rescue on save failure (`CamShare-unsaved-*`) | 🟢 | Same session only. |
 | Low-disk warning (< 2 GB) at prepare time only | 🟢 | |
@@ -154,7 +154,7 @@ Each row is a requirement from [V1-SPECIFICATION.md](V1-SPECIFICATION.md)
 
 | Requirement | Current code | V1 |
 |---|---|---|
-| Windows desktop app | Exists; run as a development build in the 2026-11-17/18 app tests; the installed build has not been tested since these changes | ✅ dev build / ❓ installer |
+| Windows desktop app | Exists. Development build tested 2026-11-17/18. **Installed 1.0.0 build, 2026-11-19** (unsigned NSIS installer from `main` `4309454`, user-run): install (SmartScreen warning, as expected for an unsigned build), launch, 5/5 pairings, Audio off/on in both modes, phone lock, minimize and app switch, a 30-min recording, Close-during-recording (Cancel / Stop & Close), Open Folder / New Recording and uninstall all passed; **seeking in Windows Media Player failed** (fixed separately, see the WebM finalization row) | ✅ (one PC; seek fix pending a rebuild) |
 | macOS desktop app | No build target, no permission handling | ❌ (must not be marked verified until tested) |
 | QR code + WebRTC | Exists | 🟢 |
 | "Over Wi-Fi" | Signaling goes through an internet-hosted server (Render). Media is peer-to-peer and uses public STUN; with TURN configured, media can be relayed over the internet | ❓ open question Q1 |
@@ -272,9 +272,9 @@ runs on one PC; details in §1.2).
 | 1 | 1080p Screen + Camera recording | 🟡 partial: 1920×1080 recordings of 179 s and 118 s (2026-11-18), ~29–30 fps outside minimize | ❓ not run (not buildable yet) |
 | 2 | PiP move/resize during recording | 🟡 partial: drag/resize phase recorded at 30.00 fps, no gap > 50 ms (2026-11-18, 1 run) | ❓ |
 | 3 | Camera disconnect and reconnect | 🟡 partial: recording continued, camera returned at the same PiP position (2026-11-18, 1 run); the status text didn't show the interruption | ❓ |
-| 4 | ≥ 30-minute recording | ❓ not run | ❓ |
+| 4 | ≥ 30-minute recording | 🟡 one run (installed build, 2026-11-19): 29:39, 29.2 fps, 5 gaps > 100 ms (max 127 ms), 0 decode errors; seek index added afterwards | ❓ |
 | 5 | Minimize and restore | 🟡 partial: recording continues; ~28 fps Screen only, 25.8 fps with the camera (≤ 37 s minimized) | ❓ |
-| 6 | Switching to other applications | ❓ not separately tested | ❓ |
+| 6 | Switching to other applications | 🟡 one run (installed build, 2026-11-19): recording continued; ~28.4–29.4 fps in the minimize/app-switch stretch, 0 gaps > 100 ms | ❓ |
 | 7 | CPU / GPU / memory / smoothness / dropped frames | ❓ not measured in the app (POC measurements only) | ❓ |
 
 Pending decision: whether to keep `backgroundThrottling: false` (currently set

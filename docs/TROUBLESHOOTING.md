@@ -41,7 +41,7 @@ noted otherwise.
 | No audio in a recording | Expected when **Record PC microphone** is unchecked (the default): recordings are video only. |
 | Wrong microphone recorded | CamShare uses the Windows default input device; there's no picker in V1. Change the default in Windows sound settings. |
 | "Disk too slow: write backlog exceeded" | More than 256 MB of data is waiting to be written; the recording is stopped and saved as partial. Use a faster disk. |
-| "Saved without seek support: …" | The WebM duration fix failed or there wasn't enough free space (needs about 1.1× the file size + 64 MB). The file plays but may not show its length or allow scrubbing. |
+| "Saved without seek support: …" | Adding the duration and seek index to the WebM failed, or there wasn't enough free space (needs about 1.1× the file size + 64 MB). The file plays, but players such as Windows Media Player may not show its length or allow seeking. Browsers and VLC usually can. |
 | "(partial: …)" after the file name | A write error happened; the saved file is truncated. |
 | "Save failed: … Recorded data was kept at …\CamShare-unsaved-….webm" | Final save failed; the raw data was rescued under that name. |
 | Leftover `.camshare-*.tmp` files | Left by a crash. They're cleaned at startup **only in the default folder** (`Videos\CamShare`). Delete them by hand from custom folders. |

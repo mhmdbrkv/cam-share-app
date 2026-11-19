@@ -188,9 +188,13 @@ characters). It is generated fresh on every app launch and is not persisted.
 **Saving** (`main.js`, *code-traced*):
 1. Chunks stream into a hidden temp file `.camshare-<12 hex>.tmp` inside the
    save directory.
-2. On stop, for `.webm` files, `addWebmDuration` inserts an EBML `Duration`
-   element into the `Info` section and writes `.camshare-<hex>.indexed.tmp`
-   (MediaRecorder WebM has no duration, so players otherwise cannot scrub).
+2. On stop, for `.webm` files, `finalizeWebm` (`src/webm-index.js`) writes
+   `.camshare-<hex>.indexed.tmp`, a copy with: `Duration` in `Info`; a
+   `SeekHead` (pointing to `Info`, `Tracks`, `Cues`); known sizes for the
+   `Segment` and every `Cluster` (patched in place, same byte length); and a
+   `Cues` index with one `CuePoint` per video keyframe. Media blocks are copied
+   unchanged. MediaRecorder WebM has none of these, and Windows Media Player
+   then can't seek at all (slider doesn't move).
    It is skipped if free space is less than `size × 1.1 + 64 MB`. On failure,
    the un-indexed file is saved and the UI reports "Saved without seek
    support".
@@ -218,7 +222,7 @@ and saves before closing.
 | `prepare()` | `rec:prepare` | mkdir, writability check, free space (`low` if < 2 GB) |
 | `start(ext)` | `rec:start` | Only `webm`/`mp4`; only one active recording |
 | `chunk(buf)` | `rec:chunk` | Writes a chunk, resolves after flush |
-| `stop()` | `rec:stop` | Finalize, add WebM duration, publish, returns `{file, partial, error, seekable, seekError}` |
+| `stop()` | `rec:stop` | Finalize, index the WebM (duration, seek index), publish, returns `{file, partial, error, seekable, seekError}` |
 | `abort()` | `rec:abort` | Destroys stream, deletes temp file |
 | `showFile(f)` | `file:show` | Reveals in Explorer — only the last saved file |
 | `fileUrl(f)` | `file:url` | `file://` URL for preview — only the last saved file |
