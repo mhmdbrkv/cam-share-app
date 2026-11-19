@@ -18,7 +18,7 @@
 
 ## Media
 
-- Camera video and audio travel over WebRTC (DTLS-SRTP encrypted) directly
+- Camera video travels over WebRTC (DTLS-SRTP encrypted) directly
   between the phone and the desktop, or through a TURN relay if configured.
   The signaling server never receives media.
 - Recordings are written only to the local disk of the PC.

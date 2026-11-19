@@ -52,16 +52,13 @@ Render wakes it up.
 - **PiP:** drag the camera on the preview to move it. Resize it by dragging
   its lower-right corner, with the **Camera size** slider, or with the mouse
   wheel (10–50 % of the width).
-- **Audio:**
-  - Windows system audio is included when available.
-  - In Screen + camera mode, the phone microphone is included when
-    permission is granted.
-  - Enable **Also record PC microphone** to record the desktop microphone
-    instead. When it is on, the **phone microphone is not recorded**, to
-    avoid echo. System audio is still mixed in.
-  - Note: this is the current behaviour. The approved V1 spec records the PC
-    microphone only and defers the phone microphone to V2 (see conflict C4
-    in [docs/PROJECT-STATUS.md](docs/PROJECT-STATUS.md)).
+- **Audio:** off by default, so recordings are video only.
+  - Check **Record PC microphone** to record your Windows default
+    microphone. That is the only audio CamShare records.
+  - Windows system audio and the phone microphone are never recorded. The
+    phone page asks for the camera only.
+  - There is no microphone picker yet: to use a different microphone,
+    change the default input device in Windows sound settings.
 - **Files:** saved to `Videos\CamShare` as `CamShare-YYYYMMDD-HHMMSS.webm`
   (or `.mp4`, depending on what the recorder supports). Existing files are
   never overwritten. Use **Change folder** to pick another folder for the

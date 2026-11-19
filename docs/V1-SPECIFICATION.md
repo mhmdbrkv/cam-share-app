@@ -67,6 +67,11 @@ resizable Picture-in-Picture (PiP) overlay.
 - The default microphone is selected automatically. An optional microphone
   selection in settings applies to new recordings.
 - Mobile microphone recording is deferred (V2).
+- Windows system audio is never recorded in V1 (decision 2026-11-18).
+- Audio is **off by default** (decision 2026-11-18).
+- **Decision 2026-11-18:** microphone device selection is **deferred** from
+  V1. V1 always uses the Windows default microphone. (This is a deferral
+  from V1, not an addition to the V2 list in §6.)
 
 ### 2.6 Output and storage
 
