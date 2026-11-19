@@ -50,6 +50,9 @@ function setState(s, msg) {
   updateScreenButton();
   $("pick").disabled = ["preparing", "recording", "finalizing"].includes(s);
   $("done").style.display = s === "completed" ? "block" : "none";
+  // UI only: expose the state to the layout (index.html CSS and ui.js). No behaviour depends on it.
+  document.body.dataset.state = s;
+  document.body.dataset.screen = hasScreen() ? "yes" : "no";
 }
 
 /* ---------- screen capture + compositor (shared by preview & recording) ---------- */
@@ -152,11 +155,25 @@ const camLive = () => {
     S.pc.connectionState === "connected"
   );
 };
+// The camera overlay is always a 16:9 landscape rectangle (user decision 2026-11-19). The phone's
+// frame is centre-cropped to fit, so a phone held upright still gives a landscape overlay.
+const PIP_ASPECT = 16 / 9;
+function pipCrop() {
+  const vw = cv.videoWidth,
+    vh = cv.videoHeight;
+  if (vw / vh > PIP_ASPECT) {
+    const sw = vh * PIP_ASPECT;
+    return { sx: (vw - sw) / 2, sy: 0, sw, sh: vh };
+  }
+  const sh = vw / PIP_ASPECT;
+  return { sx: 0, sy: (vh - sh) / 2, sw: vw, sh };
+}
 function pipRect() {
   const W = canvas.width,
     H = canvas.height,
-    pw = S.pip.w * W,
-    ph = (pw * cv.videoHeight) / cv.videoWidth;
+    // Never taller than the canvas: on screens wider than 16:9 a full-width camera would be.
+    pw = Math.min(S.pip.w * W, H * PIP_ASPECT),
+    ph = pw / PIP_ASPECT;
   return {
     x: Math.min(Math.max(0, S.pip.x * W), W - pw),
     y: Math.min(Math.max(0, S.pip.y * H), H - ph),
@@ -165,7 +182,7 @@ function pipRect() {
   };
 }
 function setPipSize(size) {
-  S.pip.w = Math.min(0.5, Math.max(0.1, size));
+  S.pip.w = Math.min(1, Math.max(0.1, size)); // 10–100 % of the canvas width (decision 2026-11-19)
   $("size").value = String(Math.round(S.pip.w * 100));
   $("sizeValue").textContent = `${Math.round(S.pip.w * 100)}%`;
 }
@@ -179,27 +196,29 @@ function renderFrame() {
     const r = pipRect();
     const track = cv.srcObject.getVideoTracks()[0];
     const isUserFacing = track?.getSettings()?.facingMode === "user";
+    // Camera look (decision 2026-11-19): rounded corners, no border, a soft shadow. The shadow is
+    // a few translucent layers instead of ctx.shadowBlur, to keep the per-frame cost low.
+    const radius = Math.max(6, r.w * 0.03);
+    ctx.save();
+    for (let i = 1; i <= 3; i++) {
+      const spread = (r.w * 0.006) * i;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.09)";
+      ctx.beginPath();
+      ctx.roundRect(r.x - spread, r.y - spread + spread * 0.6, r.w + 2 * spread, r.h + 2 * spread, radius + spread);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.roundRect(r.x, r.y, r.w, r.h, radius);
+    ctx.clip();
     if (isUserFacing) {
-      ctx.save();
       ctx.translate(2 * r.x + r.w, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(cv, r.x, r.y, r.w, r.h);
-    if (isUserFacing) ctx.restore();
-
-    // Camera border
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(r.x, r.y, r.w, r.h);
-
-    // Only draw the resize handle during preview, NOT in the final recording!
-    if (!mr) {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(r.x + r.w - 18, r.y + r.h - 18, 18, 18);
-      ctx.strokeStyle = "#14161a";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(r.x + r.w - 18, r.y + r.h - 18, 18, 18);
-    }
+    const c = pipCrop();
+    ctx.drawImage(cv, c.sx, c.sy, c.sw, c.sh, r.x, r.y, r.w, r.h);
+    ctx.restore();
+    // No resize handle is drawn (decision 2026-11-19). The lower-right corner still resizes;
+    // the pointer cursor shows it (see canvas.onpointermove).
   }
   // While recording, hand exactly this drawn frame to the recorder (canvas.captureStream(0)).
   if (recordFrameTrack) recordFrameTrack.requestFrame();
@@ -273,8 +292,19 @@ canvas.onpointerdown = (e) => {
   }
 };
 canvas.onpointermove = (e) => {
-  if (!drag) return;
   const p = toCanvas(e);
+  if (!drag) {
+    // Cursor hint instead of a drawn handle: resize arrows on the lower-right corner, move elsewhere
+    // on the camera.
+    let cursor = "";
+    if (camLive()) {
+      const r = pipRect();
+      if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h)
+        cursor = p.x >= r.x + r.w - 24 && p.y >= r.y + r.h - 24 ? "nwse-resize" : "move";
+    }
+    canvas.style.cursor = cursor;
+    return;
+  }
   if (resizing) {
     setPipSize((p.x - drag.x) / canvas.width);
     return;
@@ -286,7 +316,17 @@ canvas.onpointerup = () => {
   drag = null;
   resizing = false;
 };
+// The wheel resizes the camera only while the pointer is over the visible overlay (decision
+// 2026-11-19); elsewhere on the preview, and in Screen only mode, it does nothing.
 canvas.onwheel = (e) => {
+  const pipShown = mr
+    ? recordMode === "cam"
+    : document.querySelector("input[name=mode]:checked")?.value === "cam";
+  if (!pipShown || !camLive()) return;
+  const p = toCanvas(e),
+    r = pipRect();
+  if (p.x < r.x || p.x > r.x + r.w || p.y < r.y || p.y > r.y + r.h) return;
+  e.preventDefault();
   setPipSize(S.pip.w - e.deltaY * 0.0005);
 };
 $("size").oninput = (e) => setPipSize(e.target.value / 100);
