@@ -7,12 +7,13 @@ camera on the live preview, and record. The video is saved on your PC.
 - **Desktop app:** Electron (`^33.0.0`), currently **Windows only**.
 - **Signaling server:** small Node.js + `ws` server (hosted on Render) that
   pairs the phone and the PC and serves the landing and phone pages.
-- **Phone:** any modern mobile browser. No app install, no account.
+- **Phone:** a mobile browser with camera access. No app install, no
+  account. Tested on Android; **iPhone (Safari) is not tested yet**.
 
 Camera video goes directly from phone to PC over WebRTC. The server only
 relays pairing messages.
 
-> **Status:** v0.1.0. CamShare V1 targets **Windows and macOS**. Windows is
+> **Status:** v1.0.0 (Windows). CamShare V1 targets **Windows and macOS**. Windows is
 > the current implementation target. macOS is **not supported or tested
 > yet**. The approved V1 behaviour is in
 > [docs/V1-SPECIFICATION.md](docs/V1-SPECIFICATION.md). What the code does
@@ -43,8 +44,8 @@ By default the app connects to the production server at
    open while recording. **Flip Camera** switches between the front and back
    cameras.
 
-If the server was idle, the first connection can take about 30 seconds while
-Render wakes it up.
+If the server was idle, the first connection can take up to about a minute
+while Render wakes it up (the service runs on Render's Free plan).
 
 ## Recording
 
