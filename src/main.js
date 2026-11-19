@@ -10,9 +10,8 @@ const {
 const path = require("path"),
   fs = require("fs"),
   crypto = require("crypto"),
-  { Readable } = require("stream"),
-  { pipeline } = require("stream/promises"),
   { pathToFileURL } = require("url"),
+  { finalizeWebm } = require("./webm-index"),
   QR = require("qrcode");
 let win,
   rec = null,
@@ -41,90 +40,7 @@ function cleanStale(dir) {
       .forEach((f) => fs.unlinkSync(path.join(dir, f)));
   } catch {}
 }
-// MediaRecorder WebM has no Duration, so players show no length and scrubbing is poor.
-// This inserts a Duration element into Info (Segment size is "unknown" in Chrome output,
-// so growing Info does not invalidate any offsets) and streams the rest of the file through.
-async function addWebmDuration(file, output, durationMs) {
-  const fd = await fs.promises.open(file, "r");
-  try {
-    const head = Buffer.alloc(65536);
-    const { bytesRead } = await fd.read(head, 0, head.length, 0);
-    const vlen = (o) => Math.clz32(head[o]) - 23; // 1..8 (0 is invalid)
-    const sizeAt = (o) => {
-      const n = vlen(o);
-      if (n < 1 || n > 8 || o + n > bytesRead) throw new Error("Bad EBML size");
-      let v = BigInt(head[o] & (0xff >> n));
-      for (let k = 1; k < n; k++) v = (v << 8n) | BigInt(head[o + k]);
-      return { n, v, unknown: v === (1n << BigInt(7 * n)) - 1n };
-    };
-    const idAt = (o) => {
-      const n = vlen(o);
-      if (n < 1 || n > 4) throw new Error("Bad EBML id");
-      return { n, id: head.readUIntBE(o, n) };
-    };
-    if (idAt(0).id !== 0x1a45dfa3) throw new Error("Not a WebM file");
-    const hs = sizeAt(4);
-    let o = 4 + hs.n + Number(hs.v);
-    const seg = idAt(o);
-    if (seg.id !== 0x18538067) throw new Error("Segment not found");
-    o += seg.n + sizeAt(o + seg.n).n;
-    while (o < bytesRead - 16) {
-      const { n: idLen, id } = idAt(o);
-      const sz = sizeAt(o + idLen);
-      const dataStart = o + idLen + sz.n,
-        size = Number(sz.v);
-      if (sz.unknown) throw new Error("Unknown-size element before Info");
-      if (id === 0x1549a966) {
-        const infoEnd = dataStart + size;
-        if (infoEnd > bytesRead) throw new Error("Info element too large");
-        const info = head.subarray(dataStart, infoEnd);
-        let scale = 1000000;
-        for (let p = 0; p < info.length - 3; ) { // walk Info children
-          const cl = Math.clz32(info[p]) - 23;
-          const cid = info.readUIntBE(p, cl);
-          const sl = Math.clz32(info[p + cl]) - 23;
-          let cv = BigInt(info[p + cl] & (0xff >> sl));
-          for (let k = 1; k < sl; k++) cv = (cv << 8n) | BigInt(info[p + cl + k]);
-          const cs = Number(cv);
-          if (cid === 0x4489) throw new Error("Duration already present");
-          if (cid === 0x2ad7b1) scale = Number(info.readUIntBE(p + cl + sl, cs));
-          p += cl + sl + cs;
-        }
-        const dur = Buffer.alloc(11);
-        dur.writeUIntBE(0x4489, 0, 2);
-        dur[2] = 0x88;
-        dur.writeDoubleBE((durationMs * 1e6) / scale, 3);
-        const newSize = size + dur.length;
-        let n = 1;
-        while (newSize >= 2 ** (7 * n) - 1) n++;
-        const sizeBuf = Buffer.alloc(n);
-        let x = BigInt(newSize) | (1n << BigInt(7 * n));
-        for (let k = n - 1; k >= 0; k--) { sizeBuf[k] = Number(x & 0xffn); x >>= 8n; }
-        const idBuf = Buffer.alloc(4);
-        idBuf.writeUInt32BE(0x1549a966);
-        await pipeline(
-          Readable.from(
-            (async function* () {
-              yield head.subarray(0, o);
-              yield idBuf;
-              yield sizeBuf;
-              yield info;
-              yield dur;
-              for await (const chunk of fs.createReadStream(file, { start: infoEnd }))
-                yield chunk;
-            })(),
-          ),
-          fs.createWriteStream(output, { flags: "wx" }),
-        );
-        return;
-      }
-      o = dataStart + size;
-    }
-    throw new Error("Info element not found");
-  } finally {
-    await fd.close();
-  }
-}
+// WebM finalization (Duration, SeekHead, Cues, known sizes): see webm-index.js.
 function publishFile(src, finalPath) {
   // Never overwrite: hard link when possible, otherwise copy with COPYFILE_EXCL
   // (hard links fail on exFAT/FAT32 and some network or synced folders).
@@ -332,18 +248,18 @@ ipcMain.handle("rec:stop", async () => {
     if (!size) throw error || new Error("Empty recording");
     if (path.extname(r.final) === ".webm") {
       if (!(await hasRoomToIndex(dir, size))) {
-        seekError = new Error("Not enough free disk space to add the video duration");
+        seekError = new Error("Not enough free disk space to add the video index");
       } else {
         indexedTmp = path.join(
           dir,
           `.camshare-${crypto.randomBytes(6).toString("hex")}.indexed.tmp`,
         );
         try {
-          await addWebmDuration(r.tmp, indexedTmp, Date.now() - r.startedAt);
+          await finalizeWebm(r.tmp, indexedTmp, Date.now() - r.startedAt);
           seekable = true;
         } catch (indexError) {
           seekError = indexError;
-          console.error("Could not add WebM duration:", indexError);
+          console.error("Could not index WebM recording:", indexError);
           try {
             fs.unlinkSync(indexedTmp);
           } catch (cleanupError) {

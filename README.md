@@ -63,8 +63,8 @@ Render wakes it up.
   (or `.mp4`, depending on what the recorder supports). Existing files are
   never overwritten. Use **Change folder** to pick another folder for the
   current session (the choice isn't remembered after restart).
-- WebM recordings are finalized with the video duration added so players show the
-  length and can scrub through the video.
+- WebM recordings are finalized with the video duration and a seek index added,
+  so players (including Windows Media Player) show the length and can seek.
 
 ## Server configuration
 
