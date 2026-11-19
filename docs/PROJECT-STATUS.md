@@ -116,7 +116,7 @@ the method used.
 
 | Feature | Status | Notes |
 |---|---|---|
-| Landing page at `/` | ✅ | Local HTTP test. |
+| Landing page at `/` | ✅ (local) | Local HTTP test. **Redesigned 2026-11-19** (branch `redesign/landing-page`, UI stage 1). The page now has a dark indigo hero with a draggable, resizable camera demo, then How it works, Features, Privacy, Requirements, FAQ, a closing download button and a footer. It is still one self-contained file (inline CSS/SVG/JS, system fonts) under the existing CSP, and the download link is unchanged. **Checked locally** (`localhost:8080`, built-in browser) at 1366 px and 375 px: no horizontal scroll at 375 px, no console errors, the demo's drag and corner-resize work, and all 4 download links use the exact release URL. Not yet deployed. The page only claims what this file records: Windows 10/11 (tested on 11), tested on Android, iPhone untested, macOS unsupported, and a SmartScreen warning seen in the installed 1.0.0 test. Update the page if any of these change. |
 | Phone page at `/?s=<32 hex>`, 400 on a bad room, 404 elsewhere | ✅ | |
 | Security headers + CSP | ✅ | |
 | WebSocket Origin allow-list | ✅ | Foreign origin → 403; `file://` accepted. ❓ that Electron actually sends `file://` wasn't captured. |
