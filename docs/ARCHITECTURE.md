@@ -17,7 +17,7 @@ picture-in-picture (PiP) overlay. It has three components:
 |---|---|---|---|
 | Desktop recorder | `src/` | Windows PC (current platform) | Electron `^33.0.0` (33.4.11 installed / last built) |
 | Signaling + web host | `server/server.js` | Any Node.js host with HTTPS (deployed on Render) | Node `http` + `ws` `^8.18.0` |
-| Phone camera page | `server/public/m.html` | Phone browser | Plain HTML/JS, WebRTC, `getUserMedia` |
+| Phone camera page | `server/public/m.html` | Phone browser | Plain HTML/JS, WebRTC, `getUserMedia`; a separate presentation-only script mirrors the pairing state (status pill, steps) from the DOM |
 | Landing page | `server/public/index.html` | Any browser | One self-contained HTML file (inline CSS, SVG and a small demo script; no external assets), links to GitHub release |
 
 Media never passes through the server. The server only relays small JSON

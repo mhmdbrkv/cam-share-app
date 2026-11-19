@@ -1,8 +1,8 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>CamShare Camera</title>
     <link
       rel="icon"
@@ -11,87 +11,454 @@
     />
     <meta name="theme-color" content="#0f132a" />
     <style>
+      :root {
+        --night: #0f132a;
+        --deep: #1e1b4b;
+        --panel: #151a3a;
+        --panel-2: #1d2350;
+        --steel: #4338ca;
+        --steel-2: #6366f1;
+        --rec: #ef4444;
+        --text: #eef0fb;
+        --muted: #a9aecb;
+        --amber: #fbbf24;
+        --green: #4ade80;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      html,
+      body {
+        height: 100%;
+      }
       body {
         margin: 0;
         font-family:
+          "Segoe UI",
           system-ui,
           -apple-system,
+          "Helvetica Neue",
+          Arial,
           sans-serif;
-        background: #0f132a;
-        color: #eee;
-        text-align: center;
+        background: var(--night);
+        color: var(--text);
         display: flex;
         flex-direction: column;
         min-height: 100vh;
+        min-height: 100dvh;
+        -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent;
       }
+
+      /* Top bar: brand + live state */
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+        background: var(--night);
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .brand svg {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 6px 13px 6px 11px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 14px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+      .pill i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--muted);
+        flex: none;
+      }
+      [data-state="waiting"] .pill i,
+      [data-state="interrupted"] .pill i {
+        background: var(--amber);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      [data-state="ready"] .pill i,
+      [data-state="starting"] .pill i,
+      [data-state="connecting"] .pill i {
+        background: #818cf8;
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      [data-state="live"] .pill {
+        background: rgba(74, 222, 128, 0.12);
+        border-color: rgba(74, 222, 128, 0.35);
+      }
+      [data-state="live"] .pill i {
+        background: var(--green);
+        box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.22);
+      }
+      [data-state="error"] .pill {
+        background: rgba(239, 68, 68, 0.14);
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+      [data-state="error"] .pill i {
+        background: var(--rec);
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      /* Camera preview */
       .preview-container {
+        position: relative;
         flex: 1;
+        min-height: 120px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #000;
-        position: relative;
+        margin: 0 12px;
+        overflow: hidden;
+        border-radius: 22px;
+        background:
+          radial-gradient(
+            28rem 20rem at 50% 0%,
+            rgba(99, 102, 241, 0.28),
+            transparent 70%
+          ),
+          #070919;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
       }
       video {
+        position: absolute;
+        inset: 0;
         width: 100%;
-        max-height: 75vh;
+        height: 100%;
         object-fit: contain;
+        background: #000;
       }
-      .controls {
-        padding: 1.2rem;
-        background: #131937;
-        display: flex;
-        flex-wrap: wrap;
+      .has-video .placeholder {
+        display: none;
+      }
+      body:not(.has-video) video {
+        visibility: hidden;
+      }
+      .placeholder {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+        padding: 24px;
+        max-width: 300px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+      .placeholder svg {
+        width: 64px;
+        height: 64px;
+        color: #818cf8;
+      }
+      .live-tag {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 1;
+        display: none;
         align-items: center;
-        justify-content: center;
-        gap: 0.8rem;
+        gap: 7px;
+        padding: 6px 12px 6px 10px;
+        border-radius: 999px;
+        background: rgba(15, 19, 42, 0.78);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
       }
-      button {
-        font-size: 1.1rem;
-        padding: 0.8rem 1.6rem;
-        border: 0;
-        border-radius: 12px;
-        background: #6366f1;
-        color: #fff;
-        cursor: pointer;
+      .live-tag i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--rec);
+      }
+      [data-state="live"].has-video .live-tag {
+        display: inline-flex;
+      }
+
+      /* Bottom sheet */
+      .controls {
+        display: grid;
+        gap: 14px;
+        padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .steps li {
+        display: grid;
+        gap: 7px;
+        font-size: 12.5px;
         font-weight: 600;
-        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-        transition:
-          transform 120ms ease,
-          background 120ms ease;
+        color: var(--muted);
+        text-align: center;
       }
-      button:active {
-        transform: scale(0.97);
+      .steps li::before {
+        content: "";
+        height: 4px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.12);
       }
-      button.secondary {
-        background: #252b48;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+      .steps li.done {
+        color: var(--text);
       }
-      #s {
-        margin: 0.5rem 0;
-        font-size: 0.95rem;
-        color: #a5b4fc;
+      .steps li.done::before {
+        background: var(--steel-2);
+      }
+      .steps li.now {
+        color: var(--text);
+      }
+      .steps li.now::before {
+        background: linear-gradient(90deg, var(--steel-2) 50%, rgba(255, 255, 255, 0.12) 50%);
+      }
+      [data-state="live"] .steps li.done::before {
+        background: var(--green);
+      }
+      .msg {
+        display: grid;
+        gap: 6px;
+        min-height: 24px;
+        text-align: center;
       }
       #w {
-        margin: 0.5rem 0;
-        font-size: 0.95rem;
-        color: #fbbf24;
+        margin: 0;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        color: #fde68a;
+        font-size: 15px;
+        line-height: 1.4;
+      }
+      #s {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.4;
+        color: #c7d2fe;
+      }
+      [data-state="error"] #s {
+        color: #fca5a5;
+      }
+      .tip {
+        margin: 0;
+        font-size: 13px;
+        color: var(--muted);
+        text-align: center;
+      }
+      body:not([data-state="live"]) .tip {
+        display: none;
+      }
+      .buttons {
+        display: grid;
+        gap: 10px;
+      }
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 60px;
+        padding: 0 22px;
+        border: 0;
+        border-radius: 18px;
+        background: linear-gradient(135deg, var(--steel-2), var(--steel));
+        color: #fff;
+        font: inherit;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow:
+          0 10px 26px rgba(99, 102, 241, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        transition:
+          transform 120ms ease,
+          filter 120ms ease;
+        touch-action: manipulation;
+      }
+      button:active {
+        transform: scale(0.98);
+        filter: brightness(0.95);
+      }
+      button:focus-visible {
+        outline: 3px solid rgba(165, 180, 252, 0.8);
+        outline-offset: 3px;
+      }
+      button svg {
+        width: 24px;
+        height: 24px;
+        flex: none;
+      }
+      button.secondary {
+        background: #262d6b;
+        box-shadow:
+          inset 0 0 0 1.5px rgba(165, 180, 252, 0.45),
+          0 8px 22px rgba(0, 0, 0, 0.3);
+      }
+      @media (min-width: 560px) {
+        .preview-container {
+          margin: 0 auto;
+          width: min(100% - 24px, 720px);
+        }
+        .controls {
+          width: min(100%, 520px);
+          margin: 0 auto;
+        }
+      }
+      /* Very narrow phones: logo only, so the status pill always fits on one line. */
+      @media (max-width: 359px) {
+        .brand-name {
+          display: none;
+        }
+      }
+      /* Short phone screens (small phones, or tall ones with browser bars showing):
+         tighten spacing so Connect Camera stays on screen without scrolling. */
+      @media (orientation: portrait) and (max-height: 640px) {
+        .bar {
+          padding-top: calc(8px + env(safe-area-inset-top));
+          padding-bottom: 8px;
+        }
+        .controls {
+          gap: 10px;
+          padding-top: 12px;
+          padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        }
+        #w {
+          padding: 8px 12px;
+          font-size: 14px;
+        }
+        #s {
+          font-size: 14px;
+        }
+        button {
+          min-height: 54px;
+        }
+        .placeholder {
+          gap: 8px;
+          padding: 12px;
+          font-size: 14px;
+        }
+        .placeholder svg {
+          width: 44px;
+          height: 44px;
+        }
+      }
+      @media (orientation: landscape) and (max-height: 520px) {
+        body {
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+        .bar {
+          width: 100%;
+          padding-top: 8px;
+          padding-bottom: 8px;
+        }
+        .preview-container {
+          flex: 1 1 55%;
+          margin: 0 0 12px 12px;
+          height: calc(100dvh - 70px);
+        }
+        .controls {
+          flex: 1 1 35%;
+          align-content: center;
+          padding-top: 0;
+        }
+        button {
+          min-height: 54px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pill i {
+          animation: none !important;
+        }
+        button {
+          transition: none;
+        }
       }
     </style>
   </head>
-  <body>
+  <body data-state="waiting">
+    <header class="bar">
+      <span class="brand">
+        <svg viewBox="0 0 512 512" aria-hidden="true">
+          <defs>
+            <linearGradient id="mbg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#6366f1" />
+              <stop offset="1" stop-color="#1e1b4b" />
+            </linearGradient>
+          </defs>
+          <rect width="512" height="512" rx="116" fill="url(#mbg)" />
+          <circle cx="256" cy="262" r="112" fill="#fff" />
+          <circle cx="256" cy="262" r="74" fill="#4f46e5" />
+          <circle cx="256" cy="262" r="40" fill="#1e1b4b" />
+          <circle cx="364" cy="156" r="40" fill="#1e1b4b" />
+          <circle cx="364" cy="156" r="30" fill="#ef4444" />
+        </svg>
+        <span class="brand-name">CamShare</span>
+      </span>
+      <span class="pill" role="status" aria-live="polite"><i aria-hidden="true"></i><span id="ui-state">Waiting for computer</span></span>
+    </header>
     <div class="preview-container">
+      <span class="live-tag" aria-hidden="true"><i></i>LIVE</span>
+      <div class="placeholder" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z" /><circle cx="12" cy="12.8" r="3.8" /></svg>
+        <span id="ui-hint">Your camera preview will appear here.</span>
+      </div>
       <video id="v" autoplay muted playsinline></video>
     </div>
     <div class="controls">
-      <p id="w" style="width: 100%">
-        Waiting for the computer… scan the QR code shown in CamShare.
-      </p>
-      <p id="s" style="width: 100%">Ready to connect</p>
-      <button id="b">Connect Camera</button>
-      <button id="flip" class="secondary" style="display: none">
-        Flip Camera
-      </button>
+      <ol class="steps" aria-label="Pairing progress">
+        <li id="step-1">Computer</li>
+        <li id="step-2">Camera</li>
+        <li id="step-3">Streaming</li>
+      </ol>
+      <div class="msg">
+        <p id="w">
+          Waiting for the computer… scan the QR code shown in CamShare.
+        </p>
+        <p id="s">Ready to connect</p>
+      </div>
+      <p class="tip">Keep this page open and on screen while you record.</p>
+      <div class="buttons">
+        <button id="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z" /><circle cx="12" cy="12.8" r="3.8" /></svg>Connect Camera</button>
+        <button id="flip" class="secondary" style="display: none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8" /><path d="M4 4v4h4" /><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16" /><path d="M20 20v-4h-4" /></svg>
+          Flip Camera
+        </button>
+      </div>
     </div>
     <script>
       const room = new URLSearchParams(location.search).get("s"),
@@ -342,6 +709,93 @@
       };
 
       connect();
+    </script>
+    <script>
+      // Presentation only. Reads what the script above already shows (#w hidden, #s text,
+      // whether #b is still visible, whether #v has video) and mirrors it as a status pill,
+      // a progress strip and a preview placeholder. It never calls into or changes the
+      // pairing, WebRTC or camera logic above.
+      (function () {
+        const el = (i) => document.getElementById(i),
+          w = el("w"),
+          s = el("s"),
+          b = el("b"),
+          v = el("v");
+        const LABELS = {
+          waiting: "Waiting for computer",
+          ready: "Computer found",
+          starting: "Starting camera",
+          connecting: "Connecting",
+          live: "Streaming",
+          interrupted: "Reconnecting",
+          error: "Problem",
+          ended: "Session ended",
+        };
+        const HINTS = {
+          waiting: "Scan the QR code shown in CamShare on your computer.",
+          ready: "Tap Connect Camera and allow camera access.",
+          ended: "This camera session moved to another device.",
+          error: "Something went wrong. See the message below.",
+        };
+        // Steps done (d) and current (n) per state: 1 Computer, 2 Camera, 3 Streaming.
+        const STEPS = {
+          waiting: [0, 1],
+          ready: [1, 2],
+          starting: [1, 2],
+          connecting: [2, 3],
+          interrupted: [2, 3],
+          live: [3, 0],
+          error: [0, 0],
+          ended: [0, 0],
+        };
+        function derive() {
+          const text = s.textContent || "",
+            cameraOn = b.style.display === "none";
+          if (/took over/i.test(text)) return "ended";
+          if (/^(Camera access error|Connection error|Camera stopped)/.test(text))
+            return "error";
+          if (/^(Starting|Switching) camera/.test(text)) return "starting";
+          if (!cameraOn) return w.hidden ? "ready" : "waiting";
+          const m = text.match(/\((\w+)\)/);
+          if (m) {
+            if (m[1] === "connected") return "live";
+            if (m[1] === "disconnected") return w.hidden ? "interrupted" : "waiting";
+            if (m[1] === "failed" || m[1] === "closed") return "error";
+            return w.hidden ? "connecting" : "waiting";
+          }
+          if (/^Camera streaming|^Could not switch/.test(text)) return "live";
+          return w.hidden ? "connecting" : "waiting";
+        }
+        function render() {
+          const state = derive();
+          document.body.dataset.state = state;
+          el("ui-state").textContent = LABELS[state];
+          el("ui-hint").textContent =
+            HINTS[state] || "Your camera preview will appear here.";
+          const [done, now] = STEPS[state];
+          for (let i = 1; i <= 3; i++) {
+            const li = el("step-" + i);
+            li.className = i <= done ? "done" : i === now ? "now" : "";
+          }
+        }
+        function videoState() {
+          document.body.classList.toggle(
+            "has-video",
+            !!v.srcObject && v.readyState >= 2,
+          );
+        }
+        new MutationObserver(render).observe(s, {
+          childList: true,
+          characterData: true,
+          subtree: true,
+        });
+        new MutationObserver(render).observe(w, { attributes: true });
+        new MutationObserver(render).observe(b, { attributes: true });
+        ["loadeddata", "playing", "emptied"].forEach((e) =>
+          v.addEventListener(e, videoState),
+        );
+        render();
+      })();
     </script>
   </body>
 </html>
