@@ -66,7 +66,7 @@ async function startScreen() {
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: 30 },
-      audio: true,
+      audio: false, // V1: system audio is never recorded
     });
     if (screenSelection !== selection) {
       stream.getTracks().forEach((track) => track.stop());
@@ -457,6 +457,7 @@ let mr = null,
   outStream = null,
   recordFrameTrack = null; // canvas video track fed explicitly by renderFrame()
 async function startRecording() {
+  const wantMic = $("aud").checked; // read once, before any await
   setState("preparing");
   stopReason = "";
   stopRequested = false;
@@ -475,7 +476,7 @@ async function startRecording() {
     // captureStream(30)'s own rate limit dropped frames that followed a short draw interval.
     outStream = canvas.captureStream(0);
     recordFrameTrack = outStream.getVideoTracks()[0];
-    if ($("aud").checked) {
+    if (wantMic) {
       try {
         mic = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch {
@@ -485,27 +486,17 @@ async function startRecording() {
         }
       }
     }
-    const audioInputs = [];
-    const addAudioInput = (stream) => {
-      if (stream && stream.getAudioTracks().length) audioInputs.push(stream);
-    };
-    addAudioInput(S.screen);
-    // Prevent echo: if PC mic is enabled, prioritize PC mic directly and skip phone mic
-    if ($("aud").checked && mic) {
-      addAudioInput(mic);
-    } else if (mode === "cam") {
-      addAudioInput(cv.srcObject);
-    }
-    if (audioInputs.length) {
+    // V1 audio: only the PC's default microphone, and only when Audio is on. System audio and
+    // the phone microphone are never recorded. With no mic track, the recording is video only.
+    const micTrack = wantMic && mic ? mic.getAudioTracks()[0] || null : null;
+    if (micTrack) {
       audioContext = new AudioContext();
       const destination = audioContext.createMediaStreamDestination();
-      for (const stream of audioInputs) {
-        const source = audioContext.createMediaStreamSource(
-          new MediaStream(stream.getAudioTracks()),
-        );
-        source.connect(destination);
-        audioSources.push(source);
-      }
+      const source = audioContext.createMediaStreamSource(
+        new MediaStream([micTrack]),
+      );
+      source.connect(destination);
+      audioSources.push(source);
       outStream.addTrack(destination.stream.getAudioTracks()[0]);
       await audioContext.resume();
     }
@@ -581,9 +572,9 @@ async function startRecording() {
       if (recorder !== mr) return;
       setState(
         "recording",
-        audioInputs.length
-          ? "Recording…"
-          : "Recording… (no audio source available)",
+        wantMic && !micTrack
+          ? "Recording… (no audio: microphone unavailable)"
+          : "Recording…",
       );
     };
     mr.start(1000);
