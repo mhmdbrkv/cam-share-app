@@ -194,8 +194,6 @@ function renderFrame() {
     : document.querySelector("input[name=mode]:checked")?.value === "cam";
   if (pipEnabled && camLive()) {
     const r = pipRect();
-    const track = cv.srcObject.getVideoTracks()[0];
-    const isUserFacing = track?.getSettings()?.facingMode === "user";
     // Camera look (decision 2026-11-19): rounded corners, no border, a soft shadow. The shadow is
     // a few translucent layers instead of ctx.shadowBlur, to keep the per-frame cost low.
     const radius = Math.max(6, r.w * 0.03);
@@ -210,10 +208,6 @@ function renderFrame() {
     ctx.beginPath();
     ctx.roundRect(r.x, r.y, r.w, r.h, radius);
     ctx.clip();
-    if (isUserFacing) {
-      ctx.translate(2 * r.x + r.w, 0);
-      ctx.scale(-1, 1);
-    }
     const c = pipCrop();
     ctx.drawImage(cv, c.sx, c.sy, c.sw, c.sh, r.x, r.y, r.w, r.h);
     ctx.restore();

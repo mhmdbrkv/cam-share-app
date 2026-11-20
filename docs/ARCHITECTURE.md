@@ -151,8 +151,10 @@ characters). It is generated fresh on every app launch and is not persisted.
   connection is `connected`, the camera is drawn at the PiP rectangle,
   clipped to rounded corners (radius 3 % of its width, at least 6 px), with
   no border and a soft shadow made of three translucent layers (decision
-  2026-11-19; before, it had a square 3 px white border). Front-camera
-  (`facingMode: "user"`) frames are mirrored.
+  2026-11-19; before, it had a square 3 px white border). The camera is
+  drawn as received, not mirrored, for both front and back cameras (changed
+  2026-11-20; before, front-camera frames were flipped horizontally when the
+  track reported `facingMode: "user"`).
 - PiP position/size are stored as fractions of the canvas. Size is clamped to
   10–100 % of canvas width (decision 2026-11-19; was 10–50 %). `pipRect` also
   caps the height at the canvas height, which matters only for screens wider
