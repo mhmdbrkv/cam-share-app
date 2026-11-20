@@ -13,8 +13,10 @@ camera on the live preview, and record. The video is saved on your PC.
 Camera video goes directly from phone to PC over WebRTC. The server only
 relays pairing messages.
 
-> **Status:** v1.0.0 (Windows). CamShare V1 targets **Windows and macOS**. Windows is
-> the current implementation target. macOS is **not supported or tested
+> **Status:** v1.1.0 (Windows), the latest published
+> [release](https://github.com/mhmdbrkv/cam-share-app/releases/tag/v1.1.0).
+> CamShare V1 targets **Windows and macOS**. Windows is the current
+> implementation target. macOS is **not supported or tested
 > yet**. The approved V1 behaviour is in
 > [docs/V1-SPECIFICATION.md](docs/V1-SPECIFICATION.md). What the code does
 > today, and where it differs from V1, is tracked in
