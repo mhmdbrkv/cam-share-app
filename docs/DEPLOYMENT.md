@@ -73,7 +73,22 @@ npm run dist
   choice of install directory), `CamShare-Setup.exe.blockmap`, `builder-debug.yml`
   and `win-unpacked/`. `latest.yml` is not generated because no publish
   target is configured.
-- Last release build: `CamShare-Setup.exe` 1.0.0 from `main` `be18f44` (2026-11-19): 82,322,706 bytes, SHA-256 `dc3de8ef99e872dac071000c0cb1d39ec77ccb9ae25103e4aa89f6a97478079e`, **unsigned**; packaged app files (including `src/webm-index.js`) verified identical to the commit.
+- Latest published release: **1.1.0**, GitHub release `v1.1.0`, published
+  2026-11-20 and marked Latest: https://github.com/mhmdbrkv/cam-share-app/releases/tag/v1.1.0
+  - Tag `v1.1.0` → `main` `244bf38` (merge of PR #12).
+  - Asset `CamShare-Setup.exe`: 82,327,152 bytes, SHA-256
+    `7ce6599fa74d309cd7335a9174d79c2b976f0e11f1a412266284c0103c3dc7ea`, **unsigned**.
+  - Built 2026-11-20 from the same `src/` and `package.json` as `244bf38`
+    (before they were committed); the packaged files were not compared byte
+    for byte with the commit. After publishing, the file downloaded through
+    the landing page link had the same size and SHA-256.
+- Previous release: **1.0.0**, GitHub release `v1.0.0`, published 2026-11-19:
+  https://github.com/mhmdbrkv/cam-share-app/releases/tag/v1.0.0
+  - Tag `v1.0.0` → `main` `be18f44`.
+  - Asset `CamShare-Setup.exe`: 82,322,706 bytes, SHA-256
+    `dc3de8ef99e872dac071000c0cb1d39ec77ccb9ae25103e4aa89f6a97478079e`,
+    **unsigned**; packaged app files (including `src/webm-index.js`) verified
+    identical to the commit.
 - Only Windows is configured. There is no `mac`/`dmg` target.
 - No code signing is configured. Verified 2026-11-19: Windows SmartScreen
   warns on the unsigned installer ("Windows protected your PC"); **More info
